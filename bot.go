@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"alpha-slack-bot/Godeps/_workspace/src/golang.org/x/net/websocket"
+	"slack-magic-bot/Godeps/_workspace/src/golang.org/x/net/websocket"
 )
 
 var (
