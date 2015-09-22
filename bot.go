@@ -59,36 +59,42 @@ func isAt(m Message) bool {
 	return strings.HasPrefix(m.Text, atId) || strings.HasSuffix(m.Text, atId)
 }
 
-func handleMessage(msg Message) {
-	if msg.Type != "message" {
-		return
-	}
-	if strings.Contains(msg.Text, "谢谢") {
-		msg.Text = "不客气 :blush:"
-		outgoing <- msg
-	} else if isAt(msg) {
-		fields := strings.SplitN(msg.Text, " ", 2)
-		if len(fields) == 1 {
-			go sendCode(msg, outgoing)
-		} else {
-			var commit bool
-			for _, f := range fields {
-				if strings.Contains(f, atId) {
-					continue
-				}
-				if strings.Contains(f, "commit") {
-					commit = true
-				}
-			}
-			if commit {
-				sendCommitMessage(msg, outgoing)
-			} else {
-				msg.Text = "呵呵"
-				outgoing <- msg
-			}
+func handleMessage(incoming <-chan Message, outgoing chan<- Message) {
+	for msg := range incoming {
+		if msg.Type != "message" {
+			return
 		}
-	} else if isImage(msg) {
-		go sendCode(msg, outgoing)
+		if strings.Contains(msg.Text, "谢谢") {
+			msg.Text = "不客气 :blush:"
+			outgoing <- msg
+		} else if isAt(msg) {
+			fields := strings.SplitN(msg.Text, " ", 2)
+			if len(fields) == 1 {
+				sendCode(msg, outgoing)
+			} else {
+				var commit bool
+				for _, f := range fields {
+					if strings.Contains(f, atId) {
+						continue
+					}
+					if strings.Contains(f, "commit") {
+						commit = true
+					}
+				}
+				if commit {
+					sendCommitMessage(msg, outgoing)
+				} else {
+					if rand.Intn(2) > 0 {
+						msg.Text = "呵呵"
+					} else {
+						msg.Text = "嘻嘻"
+					}
+					outgoing <- msg
+				}
+			}
+		} else if isImage(msg) {
+			sendCode(msg, outgoing)
+		}
 	}
 }
 
@@ -132,11 +138,7 @@ func main() {
 
 	go rtmReceive(ws, incoming)
 	go rtmSend(ws, outgoing)
-	go func() {
-		for msg := range incoming {
-			handleMessage(msg)
-		}
-	}()
+	go handleMessage(incoming, outgoing)
 
 	// for heroku env only
 	startServer()
