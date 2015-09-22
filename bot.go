@@ -105,10 +105,10 @@ func readToken(file string) (token string) {
 func startServer() {
 	port := os.Getenv("PORT")
 	if port == "" {
-		log.Println("$PORT must be set")
-	} else {
-		log.Fatal(http.ListenAndServe(":"+port, nil))
+		log.Println("$PORT should be set")
+		port = "8080"
 	}
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
 func init() {
@@ -117,7 +117,8 @@ func init() {
 }
 
 func main() {
-	wsurl, botId := rtmStart(readToken("CREDENTIALS"))
+	wsurl, id := rtmStart(readToken("CREDENTIALS"))
+	botId = id
 	atId = "<@" + botId + ">"
 	log.Println(wsurl, botId)
 

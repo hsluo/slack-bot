@@ -2,10 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
+	"time"
 
 	"alpha-slack-bot/Godeps/_workspace/src/golang.org/x/net/websocket"
 )
@@ -16,6 +18,7 @@ type Message struct {
 	Channel string     `json:"channel"`
 	User    string     `json:"user"`
 	Text    string     `json:"text"`
+	Ts      string     `json:"ts"`
 	File    FileObject `json:"file"`
 }
 
@@ -61,6 +64,7 @@ func rtmReceive(ws *websocket.Conn, incoming chan<- Message) {
 func rtmSend(ws *websocket.Conn, outgoing <-chan Message) {
 	for m := range outgoing {
 		m.User = botId
+		m.Ts = fmt.Sprintf("%f", float64(time.Now().Unix())/1000000000.0)
 		log.Printf("send %#v", m)
 		if err := websocket.JSON.Send(ws, m); err != nil {
 			log.Println(err)
