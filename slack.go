@@ -55,7 +55,7 @@ func rtmReceive(ws *websocket.Conn, incoming chan<- Message) {
 		if err := websocket.JSON.Receive(ws, &m); err != nil {
 			log.Println(err)
 		} else {
-			log.Printf("read %#v", m)
+			log.Printf("read %v", m)
 			incoming <- m
 		}
 	}
@@ -65,7 +65,7 @@ func rtmSend(ws *websocket.Conn, outgoing <-chan Message) {
 	for m := range outgoing {
 		m.User = botId
 		m.Ts = fmt.Sprintf("%f", float64(time.Now().UnixNano())/1000000000.0)
-		log.Printf("send %#v", m)
+		log.Printf("send %v", m)
 		if err := websocket.JSON.Send(ws, m); err != nil {
 			log.Println(err)
 		}

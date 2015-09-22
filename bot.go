@@ -62,7 +62,7 @@ func isAt(m Message) bool {
 func handleMessage(incoming <-chan Message, outgoing chan<- Message) {
 	for msg := range incoming {
 		if msg.Type != "message" {
-			return
+			continue
 		}
 		if strings.Contains(msg.Text, "谢谢") {
 			msg.Text = "不客气 :blush:"
