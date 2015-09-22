@@ -29,7 +29,7 @@ func sendCommitMessage(m Message, outgoing chan<- Message) {
 	if err != nil {
 		log.Println(err)
 	}
-	m.Text = string(body)
+	m.Text = strings.TrimSpace(string(body))
 	outgoing <- m
 }
 
