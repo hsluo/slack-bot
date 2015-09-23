@@ -35,6 +35,9 @@ func sendCommitMessage(m Message, outgoing chan<- Message) {
 
 func sendCode(m Message, outgoing chan<- Message) {
 	m.Text = "稍等"
+	if rand.Intn(2) > 0 {
+		m.Text += "，刚看到"
+	}
 	if time.Now().Hour() > 6 {
 		m.Text += "，我在地铁上"
 	}
@@ -68,7 +71,7 @@ func handleMessage(incoming <-chan Message, outgoing chan<- Message) {
 			msg.Text = "不客气 :blush:"
 			outgoing <- msg
 		} else if isAt(msg) {
-			fields := strings.SplitN(msg.Text, " ", 2)
+			fields := strings.Fields(msg.Text)
 			if len(fields) == 1 {
 				sendCode(msg, outgoing)
 			} else {
@@ -111,9 +114,9 @@ func readToken(file string) (token string) {
 func startServer() {
 	port := os.Getenv("PORT")
 	if port == "" {
-		log.Println("$PORT should be set")
 		port = "8080"
 	}
+	log.Println("listening on " + port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
@@ -140,6 +143,5 @@ func main() {
 	go rtmSend(ws, outgoing)
 	go handleMessage(incoming, outgoing)
 
-	// for heroku env only
 	startServer()
 }
