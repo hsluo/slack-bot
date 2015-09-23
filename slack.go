@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/hsluo/slack-magic-bot/Godeps/_workspace/src/golang.org/x/net/websocket"
+	"golang.org/x/net/websocket"
 )
 
 type Message struct {
