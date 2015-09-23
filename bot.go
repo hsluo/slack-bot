@@ -15,8 +15,7 @@ import (
 
 var (
 	token              string
-	botId, atId        string
-	incoming, outgoing chan Message
+	botId, atId, alias string
 )
 
 func sendCommitMessage(m Message, outgoing chan<- Message) {
@@ -58,8 +57,9 @@ func isImage(m Message) bool {
 }
 
 // at in the middle of the message is not supported
-func isAt(m Message) bool {
-	return strings.HasPrefix(m.Text, atId) || strings.HasSuffix(m.Text, atId)
+func isAt(text string) bool {
+	return strings.HasPrefix(text, atId) || strings.HasSuffix(text, atId) ||
+		strings.HasPrefix(text, alias) || strings.HasSuffix(text, alias)
 }
 
 func handleMessage(incoming <-chan Message, outgoing chan<- Message) {
@@ -70,14 +70,15 @@ func handleMessage(incoming <-chan Message, outgoing chan<- Message) {
 		if strings.Contains(msg.Text, "谢谢") {
 			msg.Text = "不客气 :blush:"
 			outgoing <- msg
-		} else if isAt(msg) {
+		} else if isAt(msg.Text) {
 			fields := strings.Fields(msg.Text)
 			if len(fields) == 1 {
 				sendCode(msg, outgoing)
 			} else {
 				var commit bool
+				log.Println(fields)
 				for _, f := range fields {
-					if strings.Contains(f, atId) {
+					if isAt(f) {
 						continue
 					}
 					if strings.Contains(f, "commit") {
@@ -101,13 +102,14 @@ func handleMessage(incoming <-chan Message, outgoing chan<- Message) {
 	}
 }
 
-func readToken(file string) (token string) {
+func readCredentials(file string) (token, alias string) {
 	b, err := ioutil.ReadFile("CREDENTIALS")
 	if err != nil {
 		log.Fatal(err)
 	}
-	token = strings.Split(string(b), "\n")[0]
-	log.Println(token)
+	lines := strings.Split(string(b), "\n")
+	token, alias = lines[0], lines[1]
+	log.Println(token, alias)
 	return
 }
 
@@ -126,9 +128,15 @@ func init() {
 }
 
 func main() {
-	wsurl, id := rtmStart(readToken("CREDENTIALS"))
+	token, alias = readCredentials("CREDENTIALS")
+	wsurl, id := rtmStart(token)
 	botId = id
 	atId = "<@" + botId + ">"
+	if alias == "" {
+		alias = atId
+	} else {
+		alias = "@" + alias
+	}
 	log.Println(wsurl, botId)
 
 	ws, err := websocket.Dial(wsurl, "", "https://api.slack.com/")
@@ -136,8 +144,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	incoming = make(chan Message)
-	outgoing = make(chan Message)
+	incoming := make(chan Message)
+	outgoing := make(chan Message)
 
 	go rtmReceive(ws, incoming)
 	go rtmSend(ws, outgoing)
