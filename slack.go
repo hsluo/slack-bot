@@ -28,6 +28,15 @@ type FileObject struct {
 	PrettyType string `json:"pretty_type"`
 }
 
+type Bot struct {
+	token string
+}
+
+func (b *Bot) PostForm(url string, data url.Values) (resp *http.Response, err error) {
+	data.Add("token", b.token)
+	return http.PostForm(url, data)
+}
+
 // Calls rtm.start API, return websocket url and bot id
 func rtmStart(token string) (wsurl string, id string) {
 	resp, err := http.PostForm("https://slack.com/api/rtm.start", url.Values{"token": {token}})
