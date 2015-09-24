@@ -6,15 +6,14 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
-	"golang.org/x/net/websocket"
+	"appengine"
 )
 
 var (
-	token              string
+	token, HOOK_TOKEN  string
 	botId, atId, alias string
 	loc                *time.Location
 )
@@ -103,55 +102,37 @@ func handleMessage(incoming <-chan Message, outgoing chan<- Message) {
 	}
 }
 
-func readCredentials(file string) (token, alias string) {
+func readCredentials(file string) (token string) {
 	b, err := ioutil.ReadFile("CREDENTIALS")
 	if err != nil {
 		log.Fatal(err)
 	}
 	lines := strings.Split(string(b), "\n")
-	token, alias = lines[0], lines[1]
-	log.Println(token, alias)
+	token = lines[0]
+	log.Println(token)
 	return
 }
 
-func startServer() {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
+func handleHook(rw http.ResponseWriter, req *http.Request) {
+	if req.Method != "POST" {
+		return
 	}
-	log.Println("listening on " + port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+
+	token := req.PostFormValue("token")
+	if token != HOOK_TOKEN {
+		return
+	}
+
+	c := appengine.NewContext(req)
+	c.Infof("%v", req.Form)
 }
 
 func init() {
 	loc, _ = time.LoadLocation("Asia/Shanghai")
 	log.SetFlags(log.Lshortfile)
 	rand.Seed(time.Now().Unix())
-}
 
-func main() {
-	token, alias = readCredentials("CREDENTIALS")
-	wsurl, id := rtmStart(token)
-	botId = id
-	atId = "<@" + botId + ">"
-	if alias == "" {
-		alias = atId
-	} else {
-		alias = "@" + alias
-	}
-	log.Println(wsurl, botId)
+	HOOK_TOKEN = readCredentials("CREDENTIALS")
 
-	ws, err := websocket.Dial(wsurl, "", "https://api.slack.com/")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	incoming := make(chan Message)
-	outgoing := make(chan Message)
-
-	go rtmReceive(ws, incoming)
-	go rtmSend(ws, outgoing)
-	go handleMessage(incoming, outgoing)
-
-	startServer()
+	http.HandleFunc("/hook", handleHook)
 }
