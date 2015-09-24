@@ -7,8 +7,11 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
+	"appengine"
+	"appengine/urlfetch"
 	"golang.org/x/net/websocket"
 )
 
@@ -31,11 +34,7 @@ type FileObject struct {
 type Bot struct {
 	Token, BotId string
 	Client       *http.Client
-}
-
-func (b Bot) PostForm(url string, data url.Values) (resp *http.Response, err error) {
-	data.Add("token", b.Token)
-	return b.Client.PostForm(url, data)
+	Context      appengine.Context
 }
 
 func NewBot(token string, c *http.Client) Bot {
@@ -52,12 +51,48 @@ func NewBot(token string, c *http.Client) Bot {
 
 	respAuthTest := make(map[string]interface{})
 	json.Unmarshal(body, &respAuthTest)
-	log.Println(respAuthTest)
 
 	return Bot{
-		Token:  token,
-		BotId:  respAuthTest["user_id"].(string),
-		Client: c,
+		Token: token,
+		BotId: respAuthTest["user_id"].(string),
+	}
+}
+
+func (b Bot) WithCtx(c appengine.Context) Bot {
+	b.Context = c
+	return b
+}
+
+func (b Bot) PostForm(url string, data url.Values) (resp *http.Response, err error) {
+	data.Add("token", b.Token)
+	data.Add("as_user", "true")
+	b.Context.Debugf("API=%s, data=%v", url, data)
+	client := urlfetch.Client(b.Context)
+	resp, err = client.PostForm(url, data)
+	if err != nil {
+		log.Println(err)
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Println(err)
+	}
+	log.Println(string(body))
+	return
+}
+
+func (b Bot) ChatPostMessage(data url.Values) {
+	b.PostForm("https://slack.com/api/chat.postMessage", data)
+}
+
+func (b Bot) Reply(hookData url.Values, c appengine.Context) {
+	text := hookData["text"][0]
+	if strings.Contains(text, "commit") {
+		data := url.Values{
+			"channel": {hookData["channel_id"][0]},
+			"text":    {"I got a commit"},
+		}
+		b.ChatPostMessage(data)
 	}
 }
 

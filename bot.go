@@ -16,7 +16,7 @@ import (
 var (
 	BOT_TOKEN, HOOK_TOKEN string
 	bot                   Bot
-	atId, alias           string
+	botId, atId, alias    string
 	loc                   *time.Location
 )
 
@@ -127,6 +127,8 @@ func handleHook(rw http.ResponseWriter, req *http.Request) {
 
 	c := appengine.NewContext(req)
 	c.Infof("%v", req.Form)
+
+	bot.WithCtx(c).Reply(req.Form, c)
 }
 
 func warmUp(rw http.ResponseWriter, req *http.Request) {
