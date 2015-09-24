@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -72,17 +73,30 @@ func (b Bot) PostForm(url string, data url.Values) (resp *http.Response, err err
 	if err != nil {
 		log.Println(err)
 	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	respJson, err := asJson(resp)
 	if err != nil {
-		log.Println(err)
+		return
 	}
-	log.Println(string(body))
+	log.Println(respJson)
+	if !respJson["ok"].(bool) {
+		err = errors.New(respJson["error"].(string))
+	}
 	return
 }
 
 func (b Bot) ChatPostMessage(data url.Values) {
 	b.PostForm("https://slack.com/api/chat.postMessage", data)
+}
+
+func asJson(resp *http.Response) (m map[string]interface{}, err error) {
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+	m = make(map[string]interface{})
+	err = json.Unmarshal(body, &m)
+	return
 }
 
 func (b Bot) Reply(hookData url.Values, c appengine.Context) {
@@ -102,13 +116,7 @@ func rtmStart(token string) (wsurl string, id string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-	respRtmStart := make(map[string]interface{})
-	err = json.Unmarshal(body, &respRtmStart)
+	respRtmStart, err := asJson(resp)
 	if err != nil {
 		log.Fatal(err)
 	}

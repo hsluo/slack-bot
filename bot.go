@@ -136,6 +136,7 @@ func warmUp(rw http.ResponseWriter, req *http.Request) {
 	client := urlfetch.Client(c)
 	if bot.Token == "" {
 		bot = NewBot(BOT_TOKEN, client)
+		c.Infof("new bot: %#v", bot)
 	}
 }
 
