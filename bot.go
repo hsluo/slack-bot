@@ -16,6 +16,7 @@ import (
 var (
 	token              string
 	botId, atId, alias string
+	loc                *time.Location
 )
 
 func sendCommitMessage(m Message, outgoing chan<- Message) {
@@ -37,7 +38,7 @@ func sendCode(m Message, outgoing chan<- Message) {
 	if rand.Intn(2) > 0 {
 		m.Text += "，刚看到"
 	}
-	if time.Now().Hour() > 6 {
+	if time.Now().In(loc).Hour() > 6 {
 		m.Text += "，我在地铁上"
 	}
 	outgoing <- m
@@ -123,6 +124,7 @@ func startServer() {
 }
 
 func init() {
+	loc, _ = time.LoadLocation("Asia/Shanghai")
 	log.SetFlags(log.Lshortfile)
 	rand.Seed(time.Now().Unix())
 }
