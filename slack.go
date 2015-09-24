@@ -29,12 +29,36 @@ type FileObject struct {
 }
 
 type Bot struct {
-	token string
+	Token, BotId string
+	Client       *http.Client
 }
 
-func (b *Bot) PostForm(url string, data url.Values) (resp *http.Response, err error) {
-	data.Add("token", b.token)
-	return http.PostForm(url, data)
+func (b Bot) PostForm(url string, data url.Values) (resp *http.Response, err error) {
+	data.Add("token", b.Token)
+	return b.Client.PostForm(url, data)
+}
+
+func NewBot(token string, c *http.Client) Bot {
+	resp, err := c.PostForm("https://slack.com/api/auth.test", url.Values{"token": {token}})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	respAuthTest := make(map[string]interface{})
+	json.Unmarshal(body, &respAuthTest)
+	log.Println(respAuthTest)
+
+	return Bot{
+		Token:  token,
+		BotId:  respAuthTest["user_id"].(string),
+		Client: c,
+	}
 }
 
 // Calls rtm.start API, return websocket url and bot id

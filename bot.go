@@ -10,12 +10,14 @@ import (
 	"time"
 
 	"appengine"
+	"appengine/urlfetch"
 )
 
 var (
-	token, HOOK_TOKEN  string
-	botId, atId, alias string
-	loc                *time.Location
+	BOT_TOKEN, HOOK_TOKEN string
+	bot                   Bot
+	atId, alias           string
+	loc                   *time.Location
 )
 
 func sendCommitMessage(m Message, outgoing chan<- Message) {
@@ -102,14 +104,14 @@ func handleMessage(incoming <-chan Message, outgoing chan<- Message) {
 	}
 }
 
-func readCredentials(file string) (token string) {
+func readCredentials(file string) (hookToken, botToken string) {
 	b, err := ioutil.ReadFile("CREDENTIALS")
 	if err != nil {
 		log.Fatal(err)
 	}
 	lines := strings.Split(string(b), "\n")
-	token = lines[0]
-	log.Println(token)
+	hookToken, botToken = lines[0], lines[1]
+	log.Println(hookToken, botToken)
 	return
 }
 
@@ -127,12 +129,21 @@ func handleHook(rw http.ResponseWriter, req *http.Request) {
 	c.Infof("%v", req.Form)
 }
 
+func warmUp(rw http.ResponseWriter, req *http.Request) {
+	c := appengine.NewContext(req)
+	client := urlfetch.Client(c)
+	if bot.Token == "" {
+		bot = NewBot(BOT_TOKEN, client)
+	}
+}
+
 func init() {
 	loc, _ = time.LoadLocation("Asia/Shanghai")
 	log.SetFlags(log.Lshortfile)
 	rand.Seed(time.Now().Unix())
 
-	HOOK_TOKEN = readCredentials("CREDENTIALS")
+	HOOK_TOKEN, BOT_TOKEN = readCredentials("CREDENTIALS")
 
 	http.HandleFunc("/hook", handleHook)
+	http.HandleFunc("/_ah/warmup", warmUp)
 }
