@@ -135,7 +135,7 @@ func warmUp(rw http.ResponseWriter, req *http.Request) {
 	c := appengine.NewContext(req)
 	client := urlfetch.Client(c)
 	if bot.Token == "" {
-		bot, err = NewBot(BOT_TOKEN, client)
+		bot, err := NewBot(BOT_TOKEN, client)
 		if err != nil {
 			c.Errorf("%v", err)
 		} else {
