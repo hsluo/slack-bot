@@ -46,7 +46,7 @@ func init() {
 }
 
 func main() {
-	wsurl, id := rtmStart(token)
+	wsurl, id := RtmStart(token)
 	botId = id
 	atId = "<@" + botId + ">"
 	if alias == "" {
@@ -64,8 +64,8 @@ func main() {
 	incoming := make(chan Message)
 	outgoing := make(chan Message)
 
-	go rtmReceive(ws, incoming)
-	go rtmSend(ws, outgoing)
+	go RtmReceive(ws, incoming)
+	go RtmSend(ws, outgoing)
 	go handleMessage(incoming, outgoing)
 
 	startServer()

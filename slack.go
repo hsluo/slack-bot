@@ -98,7 +98,7 @@ func asJson(resp *http.Response) (m map[string]interface{}, err error) {
 }
 
 // Calls rtm.start API, return websocket url and bot id
-func rtmStart(token string) (wsurl string, id string) {
+func RtmStart(token string) (wsurl string, id string) {
 	resp, err := http.PostForm("https://slack.com/api/rtm.start", url.Values{"token": {token}})
 	if err != nil {
 		log.Fatal(err)
@@ -112,7 +112,7 @@ func rtmStart(token string) (wsurl string, id string) {
 	return
 }
 
-func rtmReceive(ws *websocket.Conn, incoming chan<- Message) {
+func RtmReceive(ws *websocket.Conn, incoming chan<- Message) {
 	for {
 		var m Message
 		if err := websocket.JSON.Receive(ws, &m); err != nil {
@@ -124,9 +124,8 @@ func rtmReceive(ws *websocket.Conn, incoming chan<- Message) {
 	}
 }
 
-func rtmSend(ws *websocket.Conn, outgoing <-chan Message) {
+func RtmSend(ws *websocket.Conn, outgoing <-chan Message) {
 	for m := range outgoing {
-		m.User = botId
 		m.Ts = fmt.Sprintf("%f", float64(time.Now().UnixNano())/1000000000.0)
 		log.Printf("send %v", m)
 		if err := websocket.JSON.Send(ws, m); err != nil {
