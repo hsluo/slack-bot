@@ -63,21 +63,21 @@ func (b Bot) PostForm(url string, data url.Values) (resp *http.Response, err err
 	}
 	resp, err = b.Client.PostForm(url, data)
 	if err != nil {
-		log.Println(err)
+		return
 	}
 	respJson, err := asJson(resp)
 	if err != nil {
 		return
 	}
-	log.Println(respJson)
 	if !respJson["ok"].(bool) {
 		err = errors.New(respJson["error"].(string))
 	}
 	return
 }
 
-func (b Bot) ChatPostMessage(data url.Values) {
-	b.PostForm("https://slack.com/api/chat.postMessage", data)
+func (b Bot) ChatPostMessage(data url.Values) (err error) {
+	_, err = b.PostForm("https://slack.com/api/chat.postMessage", data)
+	return
 }
 
 func asJson(resp *http.Response) (m map[string]interface{}, err error) {
