@@ -10,8 +10,11 @@ import (
 	"time"
 )
 
-func sendCommitMessage(m Message, outgoing chan<- Message) {
-	resp, err := http.Get("http://whatthecommit.com/index.txt")
+func WhatTheCommit(client *http.Client) string {
+	if client == nil {
+		client = http.DefaultClient
+	}
+	resp, err := client.Get("http://whatthecommit.com/index.txt")
 	if err != nil {
 		log.Println(err)
 	}
@@ -20,7 +23,11 @@ func sendCommitMessage(m Message, outgoing chan<- Message) {
 	if err != nil {
 		log.Println(err)
 	}
-	m.Text = strings.TrimSpace(string(body))
+	return strings.TrimSpace(string(body))
+}
+
+func sendCommitMessage(m Message, outgoing chan<- Message) {
+	m.Text = WhatTheCommit(nil)
 	outgoing <- m
 }
 

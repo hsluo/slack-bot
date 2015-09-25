@@ -57,7 +57,7 @@ func reply(req *http.Request) {
 	if strings.Contains(text, "commit") {
 		data := url.Values{
 			"channel": {channel},
-			"text":    {"I got a commit"},
+			"text":    {WhatTheCommit(client)},
 		}
 		bot.WithClient(client).ChatPostMessage(data)
 	}
