@@ -6,19 +6,8 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
-
-	"appengine"
-	"appengine/urlfetch"
-)
-
-var (
-	BOT_TOKEN, HOOK_TOKEN string
-	bot                   Bot
-	botId, atId, alias    string
-	loc                   *time.Location
 )
 
 func sendCommitMessage(m Message, outgoing chan<- Message) {
@@ -40,7 +29,8 @@ func sendCode(m Message, outgoing chan<- Message) {
 	if rand.Intn(2) > 0 {
 		m.Text += "，刚看到"
 	}
-	if time.Now().In(loc).Hour() > 6 {
+	h := time.Now().In(loc).Hour()
+	if h >= 18 && h <= 20 {
 		m.Text += "，我在地铁上"
 	}
 	outgoing <- m
@@ -105,68 +95,8 @@ func handleMessage(incoming <-chan Message, outgoing chan<- Message) {
 	}
 }
 
-func readCredentials(file string) (hookToken, botToken string) {
-	b, err := ioutil.ReadFile("CREDENTIALS")
-	if err != nil {
-		log.Fatal(err)
-	}
-	lines := strings.Split(string(b), "\n")
-	hookToken, botToken = lines[0], lines[1]
-	log.Println(hookToken, botToken)
-	return
-}
-
-func handleHook(rw http.ResponseWriter, req *http.Request) {
-	if req.Method != "POST" {
-		return
-	}
-
-	token := req.PostFormValue("token")
-	if token != HOOK_TOKEN {
-		return
-	}
-
-	reply(req)
-}
-
-func reply(req *http.Request) {
-	c := appengine.NewContext(req)
-	c.Infof("%v", req.Form)
-
-	client := urlfetch.Client(c)
-
-	channel := req.PostFormValue("channel_id")
-	text := req.PostFormValue("text")
-
-	if strings.Contains(text, "commit") {
-		data := url.Values{
-			"channel": {channel},
-			"text":    {"I got a commit"},
-		}
-		bot.WithClient(client).ChatPostMessage(data)
-	}
-}
-
-func warmUp(rw http.ResponseWriter, req *http.Request) {
-	c := appengine.NewContext(req)
-	client := urlfetch.Client(c)
-	if bot.Token == "" {
-		bot, err := NewBot(client, BOT_TOKEN)
-		if err != nil {
-			c.Errorf("%v", err)
-		} else {
-			c.Infof("new bot: %#v", bot)
-		}
-	}
-}
-
 func init() {
+	log.Println("common init")
 	loc, _ = time.LoadLocation("Asia/Shanghai")
-	log.SetFlags(log.Lshortfile)
 	rand.Seed(time.Now().Unix())
-
-	HOOK_TOKEN, BOT_TOKEN = readCredentials("CREDENTIALS")
-
-	http.HandleFunc("/hook", handleHook)
-	http.HandleFunc("/_ah/warmup", warmUp)
 }
