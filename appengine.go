@@ -53,16 +53,18 @@ func reply(req *http.Request) {
 	text := req.PostFormValue("text")
 
 	client := urlfetch.Client(c)
-	data := url.Values{}
+	data := url.Values{"channel": {channel}}
 
 	if strings.Contains(text, "commit") {
-		data.Add("channel", channel)
 		data.Add("text", WhatTheCommit(client))
-		c.Infof("%v", data)
-		err := bot.WithClient(client).ChatPostMessage(data)
-		if err != nil {
-			c.Errorf("%v", err)
-		}
+	} else if strings.Contains(text, bot.User) || strings.Contains(text, bot.UserId) {
+		data.Add("text", "hhhh")
+	}
+
+	c.Infof("%v", data)
+	err := bot.WithClient(client).ChatPostMessage(data)
+	if err != nil {
+		c.Errorf("%v", err)
 	}
 }
 

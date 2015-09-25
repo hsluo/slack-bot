@@ -30,8 +30,8 @@ type FileObject struct {
 }
 
 type Bot struct {
-	Token, BotId string
-	Client       *http.Client
+	Token, UserId, User string
+	Client              *http.Client
 }
 
 func NewBot(c *http.Client, token string) (b Bot, err error) {
@@ -40,10 +40,16 @@ func NewBot(c *http.Client, token string) (b Bot, err error) {
 		return
 	}
 	respAuthTest, err := asJson(resp)
-	if err == nil {
+	if err != nil {
+		return
+	} else if !respAuthTest["ok"].(bool) {
+		err = errors.New(respAuthTest["error"].(string))
+		return
+	} else {
 		b = Bot{
-			Token: token,
-			BotId: respAuthTest["user_id"].(string),
+			Token:  token,
+			UserId: respAuthTest["user_id"].(string),
+			User:   respAuthTest["user"].(string),
 		}
 	}
 	return
