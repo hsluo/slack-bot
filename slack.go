@@ -11,9 +11,10 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/net/websocket"
+
 	"appengine"
 	"appengine/urlfetch"
-	"golang.org/x/net/websocket"
 )
 
 type Message struct {
@@ -34,29 +35,22 @@ type FileObject struct {
 
 type Bot struct {
 	Token, BotId string
-	Client       *http.Client
 	Context      appengine.Context
 }
 
-func NewBot(token string, c *http.Client) Bot {
+func NewBot(token string, c *http.Client) (b Bot, err error) {
 	resp, err := c.PostForm("https://slack.com/api/auth.test", url.Values{"token": {token}})
 	if err != nil {
-		log.Fatal(err)
+		return
 	}
-
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal(err)
+	respAuthTest, err := asJson(resp)
+	if err == nil {
+		b = Bot{
+			Token: token,
+			BotId: respAuthTest["user_id"].(string),
+		}
 	}
-
-	respAuthTest := make(map[string]interface{})
-	json.Unmarshal(body, &respAuthTest)
-
-	return Bot{
-		Token: token,
-		BotId: respAuthTest["user_id"].(string),
-	}
+	return
 }
 
 func (b Bot) WithCtx(c appengine.Context) Bot {
