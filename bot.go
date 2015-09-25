@@ -6,6 +6,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -125,17 +126,32 @@ func handleHook(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	reply(req)
+}
+
+func reply(req *http.Request) {
 	c := appengine.NewContext(req)
 	c.Infof("%v", req.Form)
 
-	bot.WithCtx(c).Reply(req.Form, c)
+	client := urlfetch.Client(c)
+
+	channel := req.PostFormValue("channel_id")
+	text := req.PostFormValue("text")
+
+	if strings.Contains(text, "commit") {
+		data := url.Values{
+			"channel": {channel},
+			"text":    {"I got a commit"},
+		}
+		bot.WithClient(client).ChatPostMessage(data)
+	}
 }
 
 func warmUp(rw http.ResponseWriter, req *http.Request) {
 	c := appengine.NewContext(req)
 	client := urlfetch.Client(c)
 	if bot.Token == "" {
-		bot, err := NewBot(BOT_TOKEN, client)
+		bot, err := NewBot(client, BOT_TOKEN)
 		if err != nil {
 			c.Errorf("%v", err)
 		} else {
