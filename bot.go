@@ -38,7 +38,8 @@ func sendCode(m Message, outgoing chan<- Message) {
 	if rand.Intn(2) > 0 {
 		m.Text += "，刚看到"
 	}
-	if time.Now().In(loc).Hour() > 6 {
+	h := time.Now().In(loc).Hour()
+	if h >= 18 && h <= 20 {
 		m.Text += "，我在地铁上"
 	}
 	outgoing <- m
