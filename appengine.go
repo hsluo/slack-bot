@@ -5,6 +5,7 @@ package main
 import (
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"strings"
@@ -65,26 +66,25 @@ func reply(req *http.Request) {
 
 	if strings.Contains(text, "commit") {
 		data.Add("text", WhatTheCommit(client))
-		outgoing <- task{
-			context: c,
-			url:     ChatPostMessageApi,
-			data:    data,
-		}
+		outgoing <- task{context: c, url: ChatPostMessageApi, data: data}
 	} else if strings.Contains(text, bot.User) ||
 		strings.Contains(text, bot.UserId) {
 		d1 := url.Values{"channel": {channel}, "text": {"稍等"}}
-		outgoing <- task{
-			context: c,
-			url:     ChatPostMessageApi,
-			data:    d1,
-		}
+		outgoing <- task{context: c, url: ChatPostMessageApi, data: d1}
+
 		text := codeWithAt(user_id)
 		d2 := url.Values{"channel": {channel}, "text": {text}}
-		outgoing <- task{
-			context: c,
-			url:     ChatPostMessageApi,
-			data:    d2,
+		outgoing <- task{context: c, url: ChatPostMessageApi, data: d2}
+	} else if strings.Contains(text, "谢谢") {
+		data.Add("text", "不客气 :blush:")
+		outgoing <- task{context: c, url: ChatPostMessageApi, data: data}
+	} else {
+		if rand.Intn(2) > 0 {
+			data.Add("text", "呵呵")
+		} else {
+			data.Add("text", "嘻嘻")
 		}
+		outgoing <- task{context: c, url: ChatPostMessageApi, data: data}
 	}
 }
 
