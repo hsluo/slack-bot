@@ -13,6 +13,11 @@ import (
 	"golang.org/x/net/websocket"
 )
 
+const (
+	API_BASE           = "https://slack.com/api/"
+	ChatPostMessageApi = API_BASE + "chat.postMessage"
+)
+
 type Message struct {
 	Type    string     `json:"type"`
 	SubType string     `json:"subtype"`

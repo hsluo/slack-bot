@@ -14,11 +14,18 @@ import (
 	"appengine/urlfetch"
 )
 
+type task struct {
+	context appengine.Context
+	url     string
+	data    url.Values
+}
+
 var (
 	BOT_TOKEN, HOOK_TOKEN string
 	bot                   Bot
 	botId, atId, alias    string
 	loc                   *time.Location
+	outgoing              chan task
 )
 
 func readCredentials(file string) (hookToken, botToken string) {
@@ -51,20 +58,41 @@ func reply(req *http.Request) {
 
 	channel := req.PostFormValue("channel_id")
 	text := req.PostFormValue("text")
+	user_id := req.PostFormValue("user_id")
 
 	client := urlfetch.Client(c)
 	data := url.Values{"channel": {channel}}
 
 	if strings.Contains(text, "commit") {
 		data.Add("text", WhatTheCommit(client))
+		outgoing <- task{
+			context: c,
+			url:     ChatPostMessageApi,
+			data:    data,
+		}
 	} else if strings.Contains(text, bot.User) || strings.Contains(text, bot.UserId) {
-		data.Add("text", "hhhh")
+		d1 := url.Values{"channel": {channel}, "text": {"稍等"}}
+		outgoing <- task{
+			context: c,
+			url:     ChatPostMessageApi,
+			data:    d1,
+		}
+		d2 := url.Values{"channel": {channel}, "text": {"1024 <@" + user_id + ">"}}
+		outgoing <- task{
+			context: c,
+			url:     ChatPostMessageApi,
+			data:    d2,
+		}
 	}
+}
 
-	c.Infof("%v", data)
-	err := bot.WithClient(client).ChatPostMessage(data)
-	if err != nil {
-		c.Errorf("%v", err)
+func worker(outgoing chan task) {
+	for task := range outgoing {
+		task.context.Infof("%v", task.data)
+		_, err := bot.WithClient(urlfetch.Client(task.context)).PostForm(task.url, task.data)
+		if err != nil {
+			task.context.Errorf("%v", err)
+		}
 	}
 }
 
@@ -85,6 +113,8 @@ func warmUp(rw http.ResponseWriter, req *http.Request) {
 func init() {
 	log.Println("appengine init")
 	HOOK_TOKEN, BOT_TOKEN = readCredentials("CREDENTIALS.appengine")
+	outgoing = make(chan task)
+	go worker(outgoing)
 
 	http.HandleFunc("/hook", handleHook)
 	http.HandleFunc("/_ah/warmup", warmUp)
