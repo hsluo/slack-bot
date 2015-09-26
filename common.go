@@ -31,23 +31,35 @@ func sendCommitMessage(m Message, outgoing chan<- Message) {
 	outgoing <- m
 }
 
-func sendCode(m Message, outgoing chan<- Message) {
-	m.Text = "稍等"
+func ack() (ret string) {
+	ret = "稍等"
 	if rand.Intn(2) > 0 {
-		m.Text += "，刚看到"
+		ret += "，刚看到"
 	}
 	h := time.Now().In(loc).Hour()
 	if h >= 18 && h <= 20 {
-		m.Text += "，我在地铁上"
+		ret += "，我在地铁上"
 	}
+	return
+}
+
+func codeWithAt(userId string) (ret string) {
+	code := rand.Intn(9000) + 1000
+	if rand.Intn(2) > 0 {
+		ret = fmt.Sprintf("%d <@%s>", code, userId)
+	} else {
+		ret = fmt.Sprintf("<@%s> %d", userId, code)
+	}
+	return
+}
+
+func sendCode(m Message, outgoing chan<- Message) {
+	m.Text = ack()
 	outgoing <- m
+
 	time.Sleep(1 * time.Second)
 
-	if rand.Intn(2) > 0 {
-		m.Text = fmt.Sprintf("%d <@%s>", rand.Intn(9000)+1000, m.User)
-	} else {
-		m.Text = fmt.Sprintf("<@%s> %d", m.User, rand.Intn(9000)+1000)
-	}
+	m.Text = codeWithAt(m.User)
 	outgoing <- m
 }
 

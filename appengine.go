@@ -70,14 +70,16 @@ func reply(req *http.Request) {
 			url:     ChatPostMessageApi,
 			data:    data,
 		}
-	} else if strings.Contains(text, bot.User) || strings.Contains(text, bot.UserId) {
+	} else if strings.Contains(text, bot.User) ||
+		strings.Contains(text, bot.UserId) {
 		d1 := url.Values{"channel": {channel}, "text": {"稍等"}}
 		outgoing <- task{
 			context: c,
 			url:     ChatPostMessageApi,
 			data:    d1,
 		}
-		d2 := url.Values{"channel": {channel}, "text": {"1024 <@" + user_id + ">"}}
+		text := codeWithAt(user_id)
+		d2 := url.Values{"channel": {channel}, "text": {text}}
 		outgoing <- task{
 			context: c,
 			url:     ChatPostMessageApi,
