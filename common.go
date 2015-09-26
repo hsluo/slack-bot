@@ -6,21 +6,15 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
-	"os"
 	"strings"
 	"time"
-
-	"golang.org/x/net/websocket"
 )
 
-var (
-	token              string
-	botId, atId, alias string
-	loc                *time.Location
-)
-
-func sendCommitMessage(m Message, outgoing chan<- Message) {
-	resp, err := http.Get("http://whatthecommit.com/index.txt")
+func WhatTheCommit(client *http.Client) string {
+	if client == nil {
+		client = http.DefaultClient
+	}
+	resp, err := client.Get("http://whatthecommit.com/index.txt")
 	if err != nil {
 		log.Println(err)
 	}
@@ -29,27 +23,43 @@ func sendCommitMessage(m Message, outgoing chan<- Message) {
 	if err != nil {
 		log.Println(err)
 	}
-	m.Text = strings.TrimSpace(string(body))
+	return strings.TrimSpace(string(body))
+}
+
+func sendCommitMessage(m Message, outgoing chan<- Message) {
+	m.Text = WhatTheCommit(nil)
 	outgoing <- m
 }
 
-func sendCode(m Message, outgoing chan<- Message) {
-	m.Text = "稍等"
+func ack() (ret string) {
+	ret = "稍等"
 	if rand.Intn(2) > 0 {
-		m.Text += "，刚看到"
+		ret += "，刚看到"
 	}
 	h := time.Now().In(loc).Hour()
 	if h >= 18 && h <= 20 {
-		m.Text += "，我在地铁上"
+		ret += "，我在地铁上"
 	}
+	return
+}
+
+func codeWithAt(userId string) (ret string) {
+	code := rand.Intn(9000) + 1000
+	if rand.Intn(2) > 0 {
+		ret = fmt.Sprintf("%d <@%s>", code, userId)
+	} else {
+		ret = fmt.Sprintf("<@%s> %d", userId, code)
+	}
+	return
+}
+
+func sendCode(m Message, outgoing chan<- Message) {
+	m.Text = ack()
 	outgoing <- m
+
 	time.Sleep(1 * time.Second)
 
-	if rand.Intn(2) > 0 {
-		m.Text = fmt.Sprintf("%d <@%s>", rand.Intn(9000)+1000, m.User)
-	} else {
-		m.Text = fmt.Sprintf("<@%s> %d", m.User, rand.Intn(9000)+1000)
-	}
+	m.Text = codeWithAt(m.User)
 	outgoing <- m
 }
 
@@ -104,55 +114,8 @@ func handleMessage(incoming <-chan Message, outgoing chan<- Message) {
 	}
 }
 
-func readCredentials(file string) (token, alias string) {
-	b, err := ioutil.ReadFile("CREDENTIALS")
-	if err != nil {
-		log.Fatal(err)
-	}
-	lines := strings.Split(string(b), "\n")
-	token, alias = lines[0], lines[1]
-	log.Println(token, alias)
-	return
-}
-
-func startServer() {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
-	log.Println("listening on " + port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
-}
-
 func init() {
+	log.Println("common init")
 	loc, _ = time.LoadLocation("Asia/Shanghai")
-	log.SetFlags(log.Lshortfile)
 	rand.Seed(time.Now().Unix())
-}
-
-func main() {
-	token, alias = readCredentials("CREDENTIALS")
-	wsurl, id := rtmStart(token)
-	botId = id
-	atId = "<@" + botId + ">"
-	if alias == "" {
-		alias = atId
-	} else {
-		alias = "@" + alias
-	}
-	log.Println(wsurl, botId)
-
-	ws, err := websocket.Dial(wsurl, "", "https://api.slack.com/")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	incoming := make(chan Message)
-	outgoing := make(chan Message)
-
-	go rtmReceive(ws, incoming)
-	go rtmSend(ws, outgoing)
-	go handleMessage(incoming, outgoing)
-
-	startServer()
 }
