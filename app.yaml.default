@@ -7,12 +7,6 @@ env_variables:
   HOOK_TOKEN: <token of outgoing webhook>
   BOT_TOKEN: <token of bot integration>
 
-inbound_services:
-- warmup
-
 handlers:
 - url: /hook
-  script: _go_app
-
-- url: /_ah/warmup
   script: _go_app

@@ -45,6 +45,10 @@ func handleHook(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	if HOOK_TOKEN == "" || BOT_TOKEN == "" {
+		warmUp(rw, req)
+	}
+
 	token := req.PostFormValue("token")
 	if token != HOOK_TOKEN {
 		return
@@ -102,8 +106,8 @@ func warmUp(rw http.ResponseWriter, req *http.Request) {
 	c := appengine.NewContext(req)
 	HOOK_TOKEN, BOT_TOKEN = loadCredentials(c)
 
-	client := urlfetch.Client(c)
-	if bot.Token == "" {
+	if bot.UserId == "" {
+		client := urlfetch.Client(c)
 		newbot, err := NewBot(client, BOT_TOKEN)
 		if err != nil {
 			c.Errorf("%v", err)
@@ -119,6 +123,5 @@ func init() {
 	outgoing = make(chan task)
 	go worker(outgoing)
 
-	http.HandleFunc("/_ah/warmup", warmUp)
 	http.HandleFunc("/hook", handleHook)
 }
