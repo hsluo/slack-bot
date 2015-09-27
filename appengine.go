@@ -3,11 +3,11 @@
 package main
 
 import (
-	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -29,14 +29,14 @@ var (
 	outgoing              chan task
 )
 
-func readCredentials(file string) (hookToken, botToken string) {
-	b, err := ioutil.ReadFile(file)
-	if err != nil {
-		log.Fatal(err)
+// load credentials from env
+func loadCredentials(c appengine.Context) (hookToken, botToken string) {
+	hookToken = os.Getenv("HOOK_TOKEN")
+	botToken = os.Getenv("BOT_TOKEN")
+	if hookToken == "" || botToken == "" {
+		c.Errorf("%s", "cannot find credentials")
+		os.Exit(1)
 	}
-	lines := strings.Split(string(b), "\n")
-	hookToken, botToken = lines[0], lines[1]
-	log.Println(hookToken, botToken)
 	return
 }
 
@@ -100,6 +100,8 @@ func worker(outgoing chan task) {
 
 func warmUp(rw http.ResponseWriter, req *http.Request) {
 	c := appengine.NewContext(req)
+	HOOK_TOKEN, BOT_TOKEN = loadCredentials(c)
+
 	client := urlfetch.Client(c)
 	if bot.Token == "" {
 		newbot, err := NewBot(client, BOT_TOKEN)
@@ -114,10 +116,9 @@ func warmUp(rw http.ResponseWriter, req *http.Request) {
 
 func init() {
 	log.Println("appengine init")
-	HOOK_TOKEN, BOT_TOKEN = readCredentials("CREDENTIALS.appengine")
 	outgoing = make(chan task)
 	go worker(outgoing)
 
-	http.HandleFunc("/hook", handleHook)
 	http.HandleFunc("/_ah/warmup", warmUp)
+	http.HandleFunc("/hook", handleHook)
 }
