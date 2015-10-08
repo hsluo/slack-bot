@@ -3,6 +3,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"math/rand"
 	"net/http"
@@ -118,10 +119,23 @@ func warmUp(rw http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func standUpAlert(rw http.ResponseWriter, req *http.Request) {
+	c := appengine.NewContext(req)
+	url := os.Getenv("SLACKBOT_URL")
+	if url == "" {
+		c.Errorf("no slackbot URL provided")
+		return
+	}
+	url = fmt.Sprintf("%s&channel=%%23%s", url, "general")
+	client := urlfetch.Client(c)
+	client.Post(url, "text/plain", strings.NewReader("stand up"))
+}
+
 func init() {
 	log.Println("appengine init")
 	outgoing = make(chan task)
 	go worker(outgoing)
 
 	http.HandleFunc("/hook", handleHook)
+	http.HandleFunc("/alerts/standup", standUpAlert)
 }

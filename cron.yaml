@@ -1,0 +1,5 @@
+cron:
+- description: stand up alert
+  url: /alerts/standup
+  schedule: every day 10:00
+  timezone: Asia/Shanghai
