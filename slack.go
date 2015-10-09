@@ -34,6 +34,10 @@ type FileObject struct {
 	PrettyType string `json:"pretty_type"`
 }
 
+type Attachment struct {
+	Text string `json:"text"`
+}
+
 type Bot struct {
 	Token, UserId, User string
 	Client              *http.Client
@@ -67,7 +71,9 @@ func (b Bot) WithClient(c *http.Client) Bot {
 
 func (b Bot) PostForm(url string, data url.Values) (resp *http.Response, err error) {
 	data.Add("token", b.Token)
-	data.Add("as_user", "true")
+	if _, ok := data["as_user"]; !ok {
+		data.Add("as_user", "true")
+	}
 
 	if b.Client == nil {
 		b.Client = http.DefaultClient

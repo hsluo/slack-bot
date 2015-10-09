@@ -3,7 +3,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/http"
@@ -131,6 +133,33 @@ func standUpAlert(rw http.ResponseWriter, req *http.Request) {
 	client.Post(url, "text/plain", strings.NewReader("stand up"))
 }
 
+func logglyAlert(rw http.ResponseWriter, req *http.Request) {
+	c := appengine.NewContext(req)
+	body, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		c.Errorf("%s", err)
+		return
+	}
+	c.Infof(string(body))
+	if BOT_TOKEN == "" {
+		warmUp(rw, req)
+	}
+
+	attachments := []Attachment{
+		{Text: string(body)},
+	}
+	bytes, err := json.Marshal(attachments)
+	if err != nil {
+		c.Errorf("%s", err)
+		return
+	}
+	data := url.Values{}
+	data.Add("channel", "#loggly")
+	data.Add("attachments", string(bytes))
+	data.Add("as_user", "false")
+	outgoing <- task{context: c, url: ChatPostMessageApi, data: data}
+}
+
 func init() {
 	log.Println("appengine init")
 	outgoing = make(chan task)
@@ -138,4 +167,5 @@ func init() {
 
 	http.HandleFunc("/hook", handleHook)
 	http.HandleFunc("/alerts/standup", standUpAlert)
+	http.HandleFunc("/loggly", logglyAlert)
 }

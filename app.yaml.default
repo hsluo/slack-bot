@@ -11,6 +11,8 @@ env_variables:
 handlers:
 - url: /hook
   script: _go_app
+- url: /loggly
+  script: _go_app
 - url: /alerts/standup
   script: _go_app
   login: admin
