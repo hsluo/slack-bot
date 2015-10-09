@@ -96,10 +96,9 @@ func reply(req *http.Request) {
 
 func worker(outgoing chan task) {
 	for task := range outgoing {
-		task.context.Infof("%v", task.data)
 		_, err := bot.WithClient(urlfetch.Client(task.context)).PostForm(task.url, task.data)
 		if err != nil {
-			task.context.Errorf("%v", err)
+			task.context.Errorf("%s\n%v", err, task.data)
 		}
 	}
 }
