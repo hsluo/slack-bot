@@ -1,14 +1,68 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 )
+
+type LogglyAlert struct {
+	AlertName        string   `json:"alert_name"`
+	AlertDescription string   `json:"alert_description"`
+	EditAlertLink    string   `json:"edit_alert_link"`
+	SourceGroup      string   `json:"source_group"`
+	StartTime        string   `json:"start_time"`
+	EndTime          string   `json:"end_time"`
+	SearchLink       string   `json:"search_link"`
+	Query            string   `json:"query"`
+	NumHits          int      `json:"num_hits"`
+	RecentHits       []string `json:"recent_hits"`
+	OwnerUsername    string   `json:"owner_username"`
+}
+
+// create slack attachement from Loggly's HTTP alert
+func NewAttachment(req *http.Request) (attachment Attachment, err error) {
+	body, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		return
+	}
+	alert := LogglyAlert{}
+	if err = json.Unmarshal(body, &alert); err != nil {
+		return
+	}
+	fields := []Field{
+		{
+			Title: "Query",
+			Value: alert.Query,
+			Short: true,
+		}, {
+			Title: "Num Hits",
+			Value: strconv.Itoa(alert.NumHits),
+			Short: true,
+		}, {
+			Title: "Recent Hits",
+			Value: strings.Join(alert.RecentHits, "\n"),
+			Short: false,
+		},
+	}
+	attachment = Attachment{
+		Fallback:   alert.AlertName,
+		Color:      "warning",
+		Pretext:    alert.AlertDescription,
+		AuthorName: alert.OwnerUsername,
+		Title:      alert.AlertName,
+		TitleLink:  alert.SearchLink,
+		Text:       alert.AlertDescription,
+		Fields:     fields,
+	}
+	return attachment, nil
+}
 
 func WhatTheCommit(client *http.Client) string {
 	if client == nil {
