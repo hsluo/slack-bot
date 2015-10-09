@@ -1,5 +1,5 @@
 cron:
 - description: stand up alert
   url: /alerts/standup
-  schedule: every day 10:00
+  schedule: every mon,tue,wed,thu,fri 10:00
   timezone: Asia/Shanghai
