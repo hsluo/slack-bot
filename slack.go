@@ -35,7 +35,21 @@ type FileObject struct {
 }
 
 type Attachment struct {
-	Text string `json:"text"`
+	Fallback   string   `json:"fallback"`
+	Color      string   `json:"color"`
+	Pretext    string   `json:"pretext"`
+	AuthorName string   `json:"author_name"`
+	Title      string   `json:"title"`
+	TitleLink  string   `json:"title_link"`
+	Text       string   `json:"text"`
+	Fields     []Field  `json:"fields"`
+	MrkdwnIn   []string `json:"mrkdwn_in"`
+}
+
+type Field struct {
+	Title string `json:"title"`
+	Value string `json:"value"`
+	Short bool   `json:"short"`
 }
 
 type Bot struct {
