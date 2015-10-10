@@ -40,7 +40,21 @@ func NewAttachment(req *http.Request) (attachment Attachment, err error) {
 	if strings.Contains(alert.RecentHits[0], "#012") {
 		fallback = strings.SplitN(alert.RecentHits[0], "#012", 2)[0]
 		for i, hit := range alert.RecentHits {
-			alert.RecentHits[i] = strings.Replace(hit, "#012", "\n", -1)
+			stackTrace := strings.Split(strings.TrimSpace(hit), "#012")
+			if fallback == "" {
+				fallback = stackTrace[0]
+			}
+			splits := strings.Split(stackTrace[0], " ")
+			for i, split := range splits {
+				if strings.Contains(split, "::") {
+					splits[i] = "`" + split + "`"
+				}
+			}
+			stackTrace[0] = strings.Join(splits, " ")
+			if len(stackTrace) > 1 {
+				stackTrace[1] = ">>> " + stackTrace[1]
+			}
+			alert.RecentHits[i] = strings.Join(stackTrace, "\n")
 		}
 	} else {
 		fallback = alert.RecentHits[0]
@@ -58,6 +72,7 @@ func NewAttachment(req *http.Request) (attachment Attachment, err error) {
 		TitleLink: alert.SearchLink,
 		Text:      fmt.Sprintf("Edit this alert on <%s|Loggly>", alert.EditAlertLink),
 		Fields:    fields,
+		MrkdwnIn:  []string{"fields"},
 	}
 	return attachment, nil
 }
