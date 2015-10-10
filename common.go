@@ -7,6 +7,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -26,6 +27,8 @@ type LogglyAlert struct {
 	OwnerUsername    string   `json:"owner_username"`
 }
 
+var exRe = regexp.MustCompile(`\w+::\w+`)
+
 // create slack attachement from Loggly's HTTP alert
 func NewAttachment(req *http.Request) (attachment Attachment, err error) {
 	body, err := ioutil.ReadAll(req.Body)
@@ -44,13 +47,9 @@ func NewAttachment(req *http.Request) (attachment Attachment, err error) {
 			if fallback == "" {
 				fallback = stackTrace[0]
 			}
-			splits := strings.Split(stackTrace[0], " ")
-			for i, split := range splits {
-				if strings.Contains(split, "::") {
-					splits[i] = "`" + split + "`"
-				}
-			}
-			stackTrace[0] = strings.Join(splits, " ")
+			stackTrace[0] = exRe.ReplaceAllStringFunc(stackTrace[0], func(match string) string {
+				return "`" + match + "`"
+			})
 			if len(stackTrace) > 1 {
 				stackTrace[1] = ">>> " + stackTrace[1]
 			}
