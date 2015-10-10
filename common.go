@@ -36,30 +36,28 @@ func NewAttachment(req *http.Request) (attachment Attachment, err error) {
 	if err = json.Unmarshal(body, &alert); err != nil {
 		return
 	}
+	var fallback string
+	if strings.Contains(alert.RecentHits[0], "#012") {
+		fallback = strings.SplitN(alert.RecentHits[0], "#012", 2)[0]
+		for i, hit := range alert.RecentHits {
+			alert.RecentHits[i] = strings.Replace(hit, "#012", "\n", -1)
+		}
+	} else {
+		fallback = alert.RecentHits[0]
+	}
 	fields := []Field{
-		{
-			Title: "Query",
-			Value: alert.Query,
-			Short: true,
-		}, {
-			Title: "Num Hits",
-			Value: strconv.Itoa(alert.NumHits),
-			Short: true,
-		}, {
-			Title: "Recent Hits",
-			Value: strings.Join(alert.RecentHits, "\n"),
-			Short: false,
-		},
+		{Title: "Description", Value: alert.AlertDescription, Short: false},
+		{Title: "Query", Value: alert.Query, Short: true},
+		{Title: "Num Hits", Value: strconv.Itoa(alert.NumHits), Short: true},
+		{Title: "Recent Hits", Value: strings.Join(alert.RecentHits, "\n"), Short: false},
 	}
 	attachment = Attachment{
-		Fallback:   alert.AlertName,
-		Color:      "warning",
-		Pretext:    alert.AlertDescription,
-		AuthorName: alert.OwnerUsername,
-		Title:      alert.AlertName,
-		TitleLink:  alert.SearchLink,
-		Text:       alert.AlertDescription,
-		Fields:     fields,
+		Fallback:  fallback,
+		Color:     "warning",
+		Title:     alert.AlertName,
+		TitleLink: alert.SearchLink,
+		Text:      fmt.Sprintf("Edit this alert on <%s|Loggly>", alert.EditAlertLink),
+		Fields:    fields,
 	}
 	return attachment, nil
 }
