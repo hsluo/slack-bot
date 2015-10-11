@@ -31,17 +31,6 @@ var (
 	outgoing              chan task
 )
 
-// load credentials from env
-func loadCredentials(c appengine.Context) (hookToken, botToken string) {
-	hookToken = os.Getenv("HOOK_TOKEN")
-	botToken = os.Getenv("BOT_TOKEN")
-	if hookToken == "" || botToken == "" {
-		c.Errorf("%s", "cannot find credentials")
-		os.Exit(1)
-	}
-	return
-}
-
 func handleHook(rw http.ResponseWriter, req *http.Request) {
 	if req.Method != "POST" {
 		return
@@ -105,11 +94,10 @@ func worker(outgoing chan task) {
 
 func warmUp(rw http.ResponseWriter, req *http.Request) {
 	c := appengine.NewContext(req)
-	HOOK_TOKEN, BOT_TOKEN = loadCredentials(c)
 
 	if bot.UserId == "" {
 		client := urlfetch.Client(c)
-		newbot, err := NewBot(client, BOT_TOKEN)
+		newbot, err := NewBot(client, credentials.BotToken)
 		if err != nil {
 			c.Errorf("%v", err)
 		} else {
