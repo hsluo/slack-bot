@@ -13,8 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hsluo/slack-bot"
-
 	"appengine"
 	"appengine/urlfetch"
 )
@@ -26,11 +24,10 @@ type task struct {
 }
 
 var (
-	BOT_TOKEN, HOOK_TOKEN string
-	bot                   slack.Bot
-	botId, atId, alias    string
-	loc                   *time.Location
-	outgoing              chan task
+	bot                slack.Bot
+	botId, atId, alias string
+	loc                *time.Location
+	outgoing           chan task
 )
 
 func handleHook(rw http.ResponseWriter, req *http.Request) {
@@ -38,12 +35,12 @@ func handleHook(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if HOOK_TOKEN == "" || BOT_TOKEN == "" {
+	if credentials.BotToken == "" || credentials.HookToken == "" {
 		warmUp(rw, req)
 	}
 
 	token := req.PostFormValue("token")
-	if token != HOOK_TOKEN {
+	if token != credentials.HookToken {
 		return
 	}
 
@@ -130,7 +127,7 @@ func logglyAlert(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if BOT_TOKEN == "" {
+	if credentials.BotToken == "" {
 		warmUp(rw, req)
 	}
 	bytes, err := json.Marshal([]slack.Attachment{attachment})
@@ -147,6 +144,13 @@ func logglyAlert(rw http.ResponseWriter, req *http.Request) {
 
 func replyCommit(rw http.ResponseWriter, req *http.Request) {
 	if !slack.ValidateCommand(req) {
+		return
+	}
+	fmt.Fprintln(rw, WhatTheCommit(urlfetch.Client(appengine.NewContext(req))))
+}
+
+func replyCommit(rw http.ResponseWriter, req *http.Request) {
+	if !ValidateCommand(req) {
 		return
 	}
 	fmt.Fprintln(rw, WhatTheCommit(urlfetch.Client(appengine.NewContext(req))))
