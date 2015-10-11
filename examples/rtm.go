@@ -43,7 +43,6 @@ func startServer() {
 
 func init() {
 	log.Println("standalone init")
-	log.SetFlags(log.Lshortfile)
 	token, alias = readCredentials("CREDENTIALS")
 }
 
