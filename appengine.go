@@ -143,6 +143,13 @@ func logglyAlert(rw http.ResponseWriter, req *http.Request) {
 	outgoing <- task{context: c, url: ChatPostMessageApi, data: data}
 }
 
+func replyCommit(rw http.ResponseWriter, req *http.Request) {
+	if !ValidateCommand(req) {
+		return
+	}
+	fmt.Fprintln(rw, WhatTheCommit(urlfetch.Client(appengine.NewContext(req))))
+}
+
 func init() {
 	log.Println("appengine init")
 	outgoing = make(chan task)
@@ -151,4 +158,5 @@ func init() {
 	http.HandleFunc("/hook", handleHook)
 	http.HandleFunc("/alerts/standup", standUpAlert)
 	http.HandleFunc("/loggly", logglyAlert)
+	http.HandleFunc("/cmds/whatthecommit", replyCommit)
 }

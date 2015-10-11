@@ -174,3 +174,7 @@ func LoadCredentials(filename string) (credentials Credentials, err error) {
 	err = json.Unmarshal(f, &credentials)
 	return
 }
+
+func ValidateCommand(req *http.Request) {
+	return credentials.Commands[req.PostFormValue("command")] == req.PostFormValue("token")
+}
