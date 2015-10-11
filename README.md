@@ -15,3 +15,4 @@ A simple Slack bot using web API and RTM API. Compatible with [Google App Engine
     ![alert](http://i.imgur.com/G45W1M6.png)
 - Outgoing webhooks
 - Mentioning bot in RTM
+- Slash command
