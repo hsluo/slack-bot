@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -16,6 +17,7 @@ import (
 const (
 	API_BASE           = "https://slack.com/api/"
 	ChatPostMessageApi = API_BASE + "chat.postMessage"
+	ChannelsInfoApi    = API_BASE + "channels.info"
 )
 
 type Credentials struct {
@@ -59,6 +61,10 @@ type Field struct {
 	Short bool   `json:"short"`
 }
 
+type Channel struct {
+	Members []string `json:"members"`
+}
+
 type Bot struct {
 	Token, UserId, User string
 	Client              *http.Client
@@ -92,7 +98,7 @@ func (b Bot) WithClient(c *http.Client) Bot {
 	return b
 }
 
-func (b Bot) PostForm(url string, data url.Values) (resp *http.Response, err error) {
+func (b Bot) PostForm(url string, data url.Values) (respJson map[string]interface{}, err error) {
 	data.Add("token", b.Token)
 	if _, ok := data["as_user"]; !ok {
 		data.Add("as_user", "true")
@@ -101,11 +107,11 @@ func (b Bot) PostForm(url string, data url.Values) (resp *http.Response, err err
 	if b.Client == nil {
 		b.Client = http.DefaultClient
 	}
-	resp, err = b.Client.PostForm(url, data)
+	resp, err := b.Client.PostForm(url, data)
 	if err != nil {
 		return
 	}
-	respJson, err := asJson(resp)
+	respJson, err = asJson(resp)
 	if err != nil {
 		return
 	}
@@ -120,15 +126,58 @@ func (b Bot) ChatPostMessage(data url.Values) (err error) {
 	return
 }
 
-func asJson(resp *http.Response) (m map[string]interface{}, err error) {
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+func (b Bot) ChannelsInfo(channelId string) ([]string, error) {
+	resp, err := b.PostForm(ChannelsInfoApi, url.Values{"channel": {channelId}})
+	if err != nil {
+		return nil, err
+	}
+	members := resp["channel"].(map[string]interface{})["members"].([]interface{})
+	ret := make([]string, len(members))
+	for i := range members {
+		ret[i] = members[i].(string)
+	}
+	return ret, nil
+}
+
+func (b Bot) UsersGetPresence(user string) (presence string, err error) {
+	resp, err := b.PostForm("https://slack.com/api/users.getPresence", url.Values{"user": {user}})
+	if err != nil {
+		return
+	} else {
+		presence = resp["presence"].(string)
+		return
+	}
+}
+
+// for presence now
+func (b Bot) UsersList(presence string) (present []string, err error) {
+	resp, err := b.PostForm("https://slack.com/api/users.list", url.Values{"presence": {presence}})
 	if err != nil {
 		return
 	}
-	m = make(map[string]interface{})
-	err = json.Unmarshal(body, &m)
+	members := resp["members"].([]interface{})
+	present = make([]string, len(members))
+	for i := range members {
+		m := members[i].(map[string]interface{})
+		p := m["presence"].(string)
+		if p == "active" {
+			present = append(present, m["id"].(string))
+		}
+	}
 	return
+}
+
+func asJson(resp *http.Response) (map[string]interface{}, error) {
+	defer resp.Body.Close()
+	m := make(map[string]interface{})
+	dec := json.NewDecoder(resp.Body)
+	for {
+		if err := dec.Decode(&m); err == io.EOF {
+			return m, nil
+		} else if err != nil {
+			return nil, err
+		}
+	}
 }
 
 // Calls rtm.start API, return websocket url and bot id

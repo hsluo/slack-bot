@@ -159,4 +159,5 @@ func init() {
 	http.HandleFunc("/alerts/standup", standUpAlert)
 	http.HandleFunc("/loggly", logglyAlert)
 	http.HandleFunc("/cmds/whatthecommit", replyCommit)
+	http.HandleFunc("/cmds/vote", vote)
 }
