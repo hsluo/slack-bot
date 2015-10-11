@@ -27,7 +27,10 @@ type LogglyAlert struct {
 	OwnerUsername    string   `json:"owner_username"`
 }
 
-var exRe = regexp.MustCompile(`\w+::\w+`)
+var (
+	exRe        = regexp.MustCompile(`\w+::\w+`)
+	credentials Credentials
+)
 
 // create slack attachement from Loggly's HTTP alert
 func NewAttachment(req *http.Request) (attachment Attachment, err error) {
@@ -184,4 +187,9 @@ func init() {
 	log.Println("common init")
 	loc, _ = time.LoadLocation("Asia/Shanghai")
 	rand.Seed(time.Now().Unix())
+	var err error
+	credentials, err = LoadCredentials("credentials.json")
+	if err != nil {
+		log.Fatal(err)
+	}
 }

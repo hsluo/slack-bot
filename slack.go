@@ -18,6 +18,13 @@ const (
 	ChatPostMessageApi = API_BASE + "chat.postMessage"
 )
 
+type Credentials struct {
+	HookToken   string
+	BotToken    string
+	SlackbotUrl string
+	Commands    map[string]string
+}
+
 type Message struct {
 	Type    string     `json:"type"`
 	SubType string     `json:"subtype"`
@@ -157,4 +164,13 @@ func RtmSend(ws *websocket.Conn, outgoing <-chan Message) {
 			log.Println(err)
 		}
 	}
+}
+
+func LoadCredentials(filename string) (credentials Credentials, err error) {
+	f, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return
+	}
+	err = json.Unmarshal(f, &credentials)
+	return
 }
