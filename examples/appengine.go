@@ -9,9 +9,10 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"time"
+
+	"github.com/hsluo/slack-bot"
 
 	"appengine"
 	"appengine/urlfetch"
@@ -35,19 +36,19 @@ func handleHook(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if credentials.BotToken == "" || credentials.HookToken == "" {
+	if bot.Token == "" || slack.Creds.HookToken == "" {
 		warmUp(rw, req)
 	}
 
 	token := req.PostFormValue("token")
-	if token != credentials.HookToken {
+	if token != slack.Creds.HookToken {
 		return
 	}
 
-	reply(req)
+	replyHook(req)
 }
 
-func reply(req *http.Request) {
+func replyHook(req *http.Request) {
 	c := appengine.NewContext(req)
 	c.Infof("%v", req.Form)
 
@@ -108,7 +109,7 @@ func warmUp(rw http.ResponseWriter, req *http.Request) {
 
 func standUpAlert(rw http.ResponseWriter, req *http.Request) {
 	c := appengine.NewContext(req)
-	url := os.Getenv("SLACKBOT_URL")
+	url := slack.Creds.SlackbotUrl
 	if url == "" {
 		c.Errorf("no slackbot URL provided")
 		return
@@ -127,7 +128,7 @@ func logglyAlert(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if credentials.BotToken == "" {
+	if bot.Token == "" {
 		warmUp(rw, req)
 	}
 	bytes, err := json.Marshal([]slack.Attachment{attachment})
@@ -144,13 +145,6 @@ func logglyAlert(rw http.ResponseWriter, req *http.Request) {
 
 func replyCommit(rw http.ResponseWriter, req *http.Request) {
 	if !slack.ValidateCommand(req) {
-		return
-	}
-	fmt.Fprintln(rw, WhatTheCommit(urlfetch.Client(appengine.NewContext(req))))
-}
-
-func replyCommit(rw http.ResponseWriter, req *http.Request) {
-	if !ValidateCommand(req) {
 		return
 	}
 	fmt.Fprintln(rw, WhatTheCommit(urlfetch.Client(appengine.NewContext(req))))
