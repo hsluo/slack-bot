@@ -9,9 +9,10 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"time"
+
+	"github.com/hsluo/slack-bot"
 
 	"appengine"
 	"appengine/urlfetch"
@@ -24,7 +25,7 @@ type task struct {
 }
 
 var (
-	bot                Bot
+	bot                slack.Bot
 	botId, atId, alias string
 	loc                *time.Location
 	outgoing           chan task
@@ -35,19 +36,19 @@ func handleHook(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if credentials.BotToken == "" || credentials.HookToken == "" {
+	if bot.Token == "" || slack.Creds.HookToken == "" {
 		warmUp(rw, req)
 	}
 
 	token := req.PostFormValue("token")
-	if token != credentials.HookToken {
+	if token != slack.Creds.HookToken {
 		return
 	}
 
-	reply(req)
+	replyHook(req)
 }
 
-func reply(req *http.Request) {
+func replyHook(req *http.Request) {
 	c := appengine.NewContext(req)
 	c.Infof("%v", req.Form)
 
@@ -60,25 +61,25 @@ func reply(req *http.Request) {
 
 	if strings.Contains(text, "commit") {
 		data.Add("text", WhatTheCommit(client))
-		outgoing <- task{context: c, url: ChatPostMessageApi, data: data}
+		outgoing <- task{context: c, url: slack.ChatPostMessageApi, data: data}
 	} else if strings.Contains(text, bot.User) ||
 		strings.Contains(text, bot.UserId) {
 		d1 := url.Values{"channel": {channel}, "text": {"稍等"}}
-		outgoing <- task{context: c, url: ChatPostMessageApi, data: d1}
+		outgoing <- task{context: c, url: slack.ChatPostMessageApi, data: d1}
 
 		text := codeWithAt(user_id)
 		d2 := url.Values{"channel": {channel}, "text": {text}}
-		outgoing <- task{context: c, url: ChatPostMessageApi, data: d2}
+		outgoing <- task{context: c, url: slack.ChatPostMessageApi, data: d2}
 	} else if strings.Contains(text, "谢谢") {
 		data.Add("text", "不客气 :blush:")
-		outgoing <- task{context: c, url: ChatPostMessageApi, data: data}
+		outgoing <- task{context: c, url: slack.ChatPostMessageApi, data: data}
 	} else {
 		if rand.Intn(2) > 0 {
 			data.Add("text", "呵呵")
 		} else {
 			data.Add("text", "嘻嘻")
 		}
-		outgoing <- task{context: c, url: ChatPostMessageApi, data: data}
+		outgoing <- task{context: c, url: slack.ChatPostMessageApi, data: data}
 	}
 }
 
@@ -96,7 +97,7 @@ func warmUp(rw http.ResponseWriter, req *http.Request) {
 
 	if bot.UserId == "" {
 		client := urlfetch.Client(c)
-		newbot, err := NewBot(client, credentials.BotToken)
+		newbot, err := slack.NewBot(client, slack.Creds.BotToken)
 		if err != nil {
 			c.Errorf("%v", err)
 		} else {
@@ -108,7 +109,7 @@ func warmUp(rw http.ResponseWriter, req *http.Request) {
 
 func standUpAlert(rw http.ResponseWriter, req *http.Request) {
 	c := appengine.NewContext(req)
-	url := os.Getenv("SLACKBOT_URL")
+	url := slack.Creds.SlackbotUrl
 	if url == "" {
 		c.Errorf("no slackbot URL provided")
 		return
@@ -127,10 +128,10 @@ func logglyAlert(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if credentials.BotToken == "" {
+	if bot.Token == "" {
 		warmUp(rw, req)
 	}
-	bytes, err := json.Marshal([]Attachment{attachment})
+	bytes, err := json.Marshal([]slack.Attachment{attachment})
 	if err != nil {
 		c.Errorf("%s", err)
 		return
@@ -139,11 +140,11 @@ func logglyAlert(rw http.ResponseWriter, req *http.Request) {
 	data.Add("channel", "#loggly")
 	data.Add("attachments", string(bytes))
 	data.Add("as_user", "false")
-	outgoing <- task{context: c, url: ChatPostMessageApi, data: data}
+	outgoing <- task{context: c, url: slack.ChatPostMessageApi, data: data}
 }
 
 func replyCommit(rw http.ResponseWriter, req *http.Request) {
-	if !ValidateCommand(req) {
+	if !slack.ValidateCommand(req) {
 		return
 	}
 	fmt.Fprintln(rw, WhatTheCommit(urlfetch.Client(appengine.NewContext(req))))

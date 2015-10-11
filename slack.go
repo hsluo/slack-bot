@@ -1,4 +1,4 @@
-package main
+package slack
 
 import (
 	"encoding/json"
@@ -63,6 +63,8 @@ type Bot struct {
 	Token, UserId, User string
 	Client              *http.Client
 }
+
+var Creds Credentials
 
 func NewBot(c *http.Client, token string) (b Bot, err error) {
 	resp, err := c.PostForm("https://slack.com/api/auth.test", url.Values{"token": {token}})
@@ -166,15 +168,15 @@ func RtmSend(ws *websocket.Conn, outgoing <-chan Message) {
 	}
 }
 
-func LoadCredentials(filename string) (credentials Credentials, err error) {
+func LoadCredentials(filename string) (err error) {
 	f, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return
 	}
-	err = json.Unmarshal(f, &credentials)
+	err = json.Unmarshal(f, &Creds)
 	return
 }
 
 func ValidateCommand(req *http.Request) bool {
-	return credentials.Commands[req.PostFormValue("command")] == req.PostFormValue("token")
+	return Creds.Commands[req.PostFormValue("command")] == req.PostFormValue("token")
 }
