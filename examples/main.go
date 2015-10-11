@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hsluo/slack-bot"
+
 	"golang.org/x/net/websocket"
 )
 
@@ -46,7 +48,7 @@ func init() {
 }
 
 func main() {
-	wsurl, id := RtmStart(token)
+	wsurl, id := slack.RtmStart(token)
 	botId = id
 	atId = "<@" + botId + ">"
 	if alias == "" {
@@ -61,11 +63,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	incoming := make(chan Message)
-	outgoing := make(chan Message)
+	incoming := make(chan slack.Message)
+	outgoing := make(chan slack.Message)
 
-	go RtmReceive(ws, incoming)
-	go RtmSend(ws, outgoing)
+	go slack.RtmReceive(ws, incoming)
+	go slack.RtmSend(ws, outgoing)
 	go handleMessage(incoming, outgoing)
 
 	startServer()

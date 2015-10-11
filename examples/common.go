@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/hsluo/slack-bot"
 )
 
 type LogglyAlert struct {
@@ -28,12 +30,11 @@ type LogglyAlert struct {
 }
 
 var (
-	exRe        = regexp.MustCompile(`\w+::\w+`)
-	credentials Credentials
+	exRe = regexp.MustCompile(`\w+::\w+`)
 )
 
 // create slack attachement from Loggly's HTTP alert
-func NewAttachment(req *http.Request) (attachment Attachment, err error) {
+func NewAttachment(req *http.Request) (attachment slack.Attachment, err error) {
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		return
@@ -61,13 +62,13 @@ func NewAttachment(req *http.Request) (attachment Attachment, err error) {
 	} else {
 		fallback = alert.RecentHits[0]
 	}
-	fields := []Field{
+	fields := []slack.Field{
 		{Title: "Description", Value: alert.AlertDescription, Short: false},
 		{Title: "Query", Value: alert.Query, Short: true},
 		{Title: "Num Hits", Value: strconv.Itoa(alert.NumHits), Short: true},
 		{Title: "Recent Hits", Value: strings.Join(alert.RecentHits, "\n"), Short: false},
 	}
-	attachment = Attachment{
+	attachment = slack.Attachment{
 		Fallback:  fallback,
 		Color:     "warning",
 		Title:     alert.AlertName,
@@ -95,7 +96,7 @@ func WhatTheCommit(client *http.Client) string {
 	return strings.TrimSpace(string(body))
 }
 
-func sendCommitMessage(m Message, outgoing chan<- Message) {
+func sendCommitMessage(m slack.Message, outgoing chan<- slack.Message) {
 	m.Text = WhatTheCommit(nil)
 	outgoing <- m
 }
@@ -122,7 +123,7 @@ func codeWithAt(userId string) (ret string) {
 	return
 }
 
-func sendCode(m Message, outgoing chan<- Message) {
+func sendCode(m slack.Message, outgoing chan<- slack.Message) {
 	m.Text = ack()
 	outgoing <- m
 
@@ -132,7 +133,7 @@ func sendCode(m Message, outgoing chan<- Message) {
 	outgoing <- m
 }
 
-func isImage(m Message) bool {
+func isImage(m slack.Message) bool {
 	return m.SubType == "file_share" &&
 		strings.HasPrefix(m.File.Mimetype, "image")
 }
@@ -143,7 +144,7 @@ func isAt(text string) bool {
 		strings.HasPrefix(text, alias) || strings.HasSuffix(text, alias)
 }
 
-func handleMessage(incoming <-chan Message, outgoing chan<- Message) {
+func handleMessage(incoming <-chan slack.Message, outgoing chan<- slack.Message) {
 	for msg := range incoming {
 		if msg.Type != "message" {
 			continue
@@ -188,7 +189,7 @@ func init() {
 	loc, _ = time.LoadLocation("Asia/Shanghai")
 	rand.Seed(time.Now().Unix())
 	var err error
-	credentials, err = LoadCredentials("credentials.json")
+	err = slack.LoadCredentials("credentials.json")
 	if err != nil {
 		log.Fatal(err)
 	}
