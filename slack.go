@@ -226,6 +226,13 @@ func LoadCredentials(filename string) (err error) {
 	return
 }
 
-func ValidateCommand(req *http.Request) bool {
-	return Creds.Commands[req.PostFormValue("command")] == req.PostFormValue("token")
+func ValidateCommand(handler http.Handler, commands map[string]string) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if commands[r.PostFormValue("command")] == r.PostFormValue("token") {
+			handler.ServeHTTP(w, r)
+		} else {
+			w.WriteHeader(404)
+			fmt.Fprintln(w, "command not found")
+		}
+	})
 }

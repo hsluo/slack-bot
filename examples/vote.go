@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"sync"
 
@@ -45,9 +46,6 @@ var (
 )
 
 func vote(rw http.ResponseWriter, req *http.Request) {
-	if !slack.ValidateCommand(req) {
-		return
-	}
 	if bot.Token == "" {
 		warmUp(rw, req)
 	}
@@ -110,4 +108,10 @@ func activeUsersInChannel(c appengine.Context, channelId string) (users []string
 		users = append(users, user)
 	}
 	return
+}
+
+func init() {
+	log.Println("vote init")
+	http.HandleFunc("/cmds/vote",
+		slack.ValidateCommand(http.HandlerFunc(vote), slack.Creds.Commands))
 }
