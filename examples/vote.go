@@ -22,6 +22,10 @@ type StringSet struct {
 	set map[string]struct{}
 }
 
+func newStringSet() StringSet {
+	return StringSet{set: make(map[string]struct{})}
+}
+
 func (v *StringSet) add(key string) {
 	v.set[key] = struct{}{}
 }
@@ -43,7 +47,7 @@ func (vr VoteResult) hasVoted(user string) bool {
 }
 
 var (
-	votes      = StringSet{}
+	votes      = newStringSet()
 	voteResult = VoteResult{}
 	m          sync.Mutex
 )
@@ -52,7 +56,6 @@ func vote(rw http.ResponseWriter, req *http.Request) {
 	var (
 		c         = appengine.NewContext(req)
 		client    = urlfetch.Client(c)
-		channel   = req.PostFormValue("channel_name")
 		channelId = req.PostFormValue("channel_id")
 		text      = req.PostFormValue("text")
 		userId    = req.PostFormValue("user_id")
@@ -60,24 +63,29 @@ func vote(rw http.ResponseWriter, req *http.Request) {
 	m.Lock()
 	if text == "start" {
 		if startVote(channelId) {
-			bot.WithClient(client).ChatPostMessage(url.Values{
-				"channel": {channel},
+			err := bot.WithClient(client).ChatPostMessage(url.Values{
+				"channel": {channelId},
 				"text":    {fmt.Sprintf("<@%s> just starts a vote!", userId)},
 			})
+			if err != nil {
+				fmt.Fprintln(rw, err)
+			} else {
+				fmt.Fprintln(rw, votes)
+			}
 		} else {
 			fmt.Fprintln(rw, "we're voting")
 		}
 	} else if text == "done" {
 		fmt.Fprintln(rw, voteResult)
 		delete(votes.set, channelId)
-	} else if votes.contains(channel) {
+	} else if votes.contains(channelId) {
 		userName := req.PostFormValue("user_name")
 		if voters, ok := voteResult[text]; ok {
 			if !voteResult.hasVoted(userName) {
 				voters.add(userName)
 			}
 		} else {
-			voters = StringSet{}
+			voters = newStringSet()
 			voters.add(userName)
 			voteResult[text] = voters
 		}
@@ -88,11 +96,11 @@ func vote(rw http.ResponseWriter, req *http.Request) {
 	m.Unlock()
 }
 
-func startVote(channel string) bool {
-	if votes.contains(channel) {
+func startVote(channelId string) bool {
+	if votes.contains(channelId) {
 		return false
 	} else {
-		votes.add(channel)
+		votes.add(channelId)
 		return true
 	}
 }
