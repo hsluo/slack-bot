@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"sync"
 
 	"github.com/hsluo/slack-bot"
@@ -17,18 +18,20 @@ type Vote struct {
 	Option   string
 }
 
-type Voters map[string]struct{}
-
-func (v Voters) add(user string) {
-	v[user] = struct{}{}
+type StringSet struct {
+	set map[string]struct{}
 }
 
-func (v Voters) contains(user string) bool {
-	_, ok := v[user]
+func (v *StringSet) add(key string) {
+	v.set[key] = struct{}{}
+}
+
+func (v StringSet) contains(key string) bool {
+	_, ok := v.set[key]
 	return ok
 }
 
-type VoteResult map[string]Voters
+type VoteResult map[string]StringSet
 
 func (vr VoteResult) hasVoted(user string) bool {
 	for _, v := range vr {
@@ -40,7 +43,7 @@ func (vr VoteResult) hasVoted(user string) bool {
 }
 
 var (
-	votes      = make(map[string]bool)
+	votes      = StringSet{}
 	voteResult = VoteResult{}
 	m          sync.Mutex
 )
@@ -49,27 +52,35 @@ func vote(rw http.ResponseWriter, req *http.Request) {
 	if bot.Token == "" {
 		warmUp(rw, req)
 	}
-	c := appengine.NewContext(req)
-	//client := urlfetch.Client(c)
-	channel := req.PostFormValue("channel_name")
-	text := req.PostFormValue("text")
+	var (
+		c         = appengine.NewContext(req)
+		client    = urlfetch.Client(c)
+		channel   = req.PostFormValue("channel_name")
+		channelId = req.PostFormValue("channel_id")
+		text      = req.PostFormValue("text")
+		userId    = req.PostFormValue("user_id")
+	)
 	m.Lock()
 	if text == "start" {
-		votes[channel] = true
-		members, err := activeUsersInChannel(c, req.PostFormValue("channel_id"))
-		if err != nil {
-			fmt.Fprintln(rw, err)
+		if startVote(channelId) {
+			bot.WithClient(client).ChatPostMessage(url.Values{
+				"channel": {channel},
+				"text":    {fmt.Sprintf("<@%s> just starts a vote!", userId)},
+			})
 		} else {
-			fmt.Fprintln(rw, members)
+			fmt.Fprintln(rw, "we're voting")
 		}
-	} else if votes[channel] {
+	} else if text == "done" {
+		fmt.Fprintln(rw, voteResult)
+		delete(votes.set, channelId)
+	} else if votes.contains(channel) {
 		userName := req.PostFormValue("user_name")
 		if voters, ok := voteResult[text]; ok {
 			if !voteResult.hasVoted(userName) {
 				voters.add(userName)
 			}
 		} else {
-			voters = Voters{}
+			voters = StringSet{}
 			voters.add(userName)
 			voteResult[text] = voters
 		}
@@ -80,6 +91,17 @@ func vote(rw http.ResponseWriter, req *http.Request) {
 	m.Unlock()
 }
 
+func startVote(channel string) bool {
+	if votes.contains(channel) {
+		return false
+	} else {
+		votes.add(channel)
+		return true
+	}
+}
+
+// count active users in channel with channels.info then users.getPresence
+// very slow due to network
 func activeUsersInChannel(c appengine.Context, channelId string) (users []string, err error) {
 	bot := bot.WithClient(urlfetch.Client(c))
 	members, err := bot.ChannelsInfo(channelId)
