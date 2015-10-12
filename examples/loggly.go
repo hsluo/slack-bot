@@ -48,11 +48,14 @@ func NewAttachment(req *http.Request) (attachment slack.Attachment, err error) {
 			if fallback == "" {
 				fallback = stackTrace[0]
 			}
-			stackTrace[0] = exRe.ReplaceAllStringFunc(stackTrace[0], func(match string) string {
-				return "`" + match + "`"
-			})
-			if len(stackTrace) > 1 {
-				stackTrace[1] = ">>> " + stackTrace[1]
+			for i := range stackTrace {
+				if i == 0 {
+					stackTrace[i] = exRe.ReplaceAllStringFunc(stackTrace[i], func(match string) string {
+						return "`" + match + "`"
+					})
+				} else {
+					stackTrace[i] = "> " + stackTrace[i]
+				}
 			}
 			alert.RecentHits[i] = strings.Join(stackTrace, "\n")
 		}
