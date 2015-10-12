@@ -22,7 +22,7 @@ const (
 
 type Credentials struct {
 	HookToken   string
-	BotToken    string
+	Bot         Bot
 	SlackbotUrl string
 	Commands    map[string]string
 }
@@ -66,8 +66,10 @@ type Channel struct {
 }
 
 type Bot struct {
-	Token, UserId, User string
-	Client              *http.Client
+	Token  string `json:"token"`
+	UserId string `json:"user_id"`
+	User   string `json:"user"`
+	Client *http.Client
 }
 
 var Creds Credentials

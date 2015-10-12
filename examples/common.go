@@ -10,6 +10,11 @@ import (
 	"github.com/hsluo/slack-bot"
 )
 
+var (
+	credentials slack.Credentials
+	bot         slack.Bot
+)
+
 func sendCommitMessage(m slack.Message, outgoing chan<- slack.Message) {
 	m.Text = WhatTheCommit(nil)
 	outgoing <- m
@@ -68,4 +73,5 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	bot = credentials.Bot
 }

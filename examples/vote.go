@@ -49,9 +49,6 @@ var (
 )
 
 func vote(rw http.ResponseWriter, req *http.Request) {
-	if bot.Token == "" {
-		warmUp(rw, req)
-	}
 	var (
 		c         = appengine.NewContext(req)
 		client    = urlfetch.Client(c)
