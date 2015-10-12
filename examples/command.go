@@ -27,5 +27,5 @@ func WhatTheCommit(client *http.Client) string {
 
 func init() {
 	http.HandleFunc("/cmds/whatthecommit",
-		slack.ValidateCommand(http.HandlerFunc(replyCommit), slack.Creds.Commands))
+		slack.ValidateCommand(http.HandlerFunc(replyCommit), credentials.Commands))
 }

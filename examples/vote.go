@@ -132,5 +132,5 @@ func activeUsersInChannel(c appengine.Context, channelId string) (users []string
 func init() {
 	log.Println("vote init")
 	http.HandleFunc("/cmds/vote",
-		slack.ValidateCommand(http.HandlerFunc(vote), slack.Creds.Commands))
+		slack.ValidateCommand(http.HandlerFunc(vote), credentials.Commands))
 }

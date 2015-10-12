@@ -72,8 +72,6 @@ type Bot struct {
 	Client *http.Client
 }
 
-var Creds Credentials
-
 func NewBot(c *http.Client, token string) (b Bot, err error) {
 	resp, err := c.PostForm("https://slack.com/api/auth.test", url.Values{"token": {token}})
 	if err != nil {
@@ -219,12 +217,12 @@ func RtmSend(ws *websocket.Conn, outgoing <-chan Message) {
 	}
 }
 
-func LoadCredentials(filename string) (err error) {
+func LoadCredentials(filename string) (credentials Credentials, err error) {
 	f, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return
 	}
-	err = json.Unmarshal(f, &Creds)
+	err = json.Unmarshal(f, &credentials)
 	return
 }
 

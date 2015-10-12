@@ -36,7 +36,7 @@ func handleHook(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	token := req.PostFormValue("token")
-	if token != slack.Creds.HookToken {
+	if token != credentials.HookToken {
 		return
 	}
 
@@ -89,7 +89,7 @@ func worker(outgoing chan task) {
 
 func standUpAlert(rw http.ResponseWriter, req *http.Request) {
 	c := appengine.NewContext(req)
-	url := slack.Creds.SlackbotUrl
+	url := credentials.SlackbotUrl
 	if url == "" {
 		c.Errorf("no slackbot URL provided")
 		return
