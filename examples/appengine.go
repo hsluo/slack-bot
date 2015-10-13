@@ -133,3 +133,5 @@ func init() {
 	http.HandleFunc("/alerts/standup", standUpAlert)
 	http.HandleFunc("/loggly", logglyAlert)
 }
+
+func main() {}

@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"net/http"
 	"net/url"
+	"sort"
 	"sync"
 
 	"github.com/hsluo/slack-bot"
@@ -35,6 +37,14 @@ func (v StringSet) contains(key string) bool {
 	return ok
 }
 
+func (v StringSet) toSlice() []string {
+	s := make([]string, 0, len(v.set))
+	for k, _ := range v.set {
+		s = append(s, k)
+	}
+	return s
+}
+
 type VoteResult map[string]StringSet
 
 func (vr VoteResult) hasVoted(user string) bool {
@@ -46,6 +56,20 @@ func (vr VoteResult) hasVoted(user string) bool {
 	return false
 }
 
+func (vr VoteResult) String() string {
+	options := make([]string, 0, len(vr))
+	for k, _ := range vr {
+		options = append(options, k)
+	}
+	sort.Strings(options)
+	var buf bytes.Buffer
+	buf.WriteString("Result:\n")
+	for i := range options {
+		buf.WriteString(fmt.Sprintf("%s: %v\n", options[i], vr[options[i]].toSlice()))
+	}
+	return buf.String()
+}
+
 var (
 	votes      = newStringSet()
 	voteResult = VoteResult{}
@@ -55,7 +79,6 @@ var (
 func vote(rw http.ResponseWriter, req *http.Request) {
 	var (
 		c         = appengine.NewContext(req)
-		client    = urlfetch.Client(c)
 		channelId = req.PostFormValue("channel_id")
 		text      = req.PostFormValue("text")
 		userId    = req.PostFormValue("user_id")
@@ -63,20 +86,18 @@ func vote(rw http.ResponseWriter, req *http.Request) {
 	m.Lock()
 	if text == "start" {
 		if startVote(channelId) {
-			err := bot.WithClient(client).ChatPostMessage(url.Values{
-				"channel": {channelId},
-				"text":    {fmt.Sprintf("<@%s> just starts a vote!", userId)},
-			})
+			err := annouce(c, channelId, fmt.Sprintf("<@%s> just starts a vote!", userId))
 			if err != nil {
 				fmt.Fprintln(rw, err)
 			} else {
-				fmt.Fprintln(rw, votes)
+				fmt.Fprintln(rw, "vote starts now")
 			}
 		} else {
 			fmt.Fprintln(rw, "we're voting")
 		}
 	} else if text == "done" {
-		fmt.Fprintln(rw, voteResult)
+		annouce(c, channelId, voteResult.String())
+		fmt.Fprintln(rw, "vote ends")
 		delete(votes.set, channelId)
 	} else if votes.contains(channelId) {
 		userName := req.PostFormValue("user_name")
@@ -89,7 +110,7 @@ func vote(rw http.ResponseWriter, req *http.Request) {
 			voters.add(userName)
 			voteResult[text] = voters
 		}
-		fmt.Fprintln(rw, "vote recorded")
+		fmt.Fprintln(rw, voteResult)
 	} else {
 		fmt.Fprintln(rw, "Not voting")
 	}
@@ -103,6 +124,15 @@ func startVote(channelId string) bool {
 		votes.add(channelId)
 		return true
 	}
+}
+
+func annouce(c appengine.Context, channelId, text string) error {
+	client := urlfetch.Client(c)
+	err := bot.WithClient(client).ChatPostMessage(url.Values{
+		"channel": {channelId},
+		"text":    {text},
+	})
+	return err
 }
 
 // count active users in channel with channels.info then users.getPresence
