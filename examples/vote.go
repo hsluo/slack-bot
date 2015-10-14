@@ -49,7 +49,7 @@ var (
 	m          sync.Mutex
 )
 
-func vote(rw http.ResponseWriter, req *http.Request) {
+func handleVote(rw http.ResponseWriter, req *http.Request) {
 	var (
 		c         = appengine.NewContext(req)
 		channelId = req.PostFormValue("channel_id")
@@ -73,16 +73,9 @@ func vote(rw http.ResponseWriter, req *http.Request) {
 		annouce(c, channelId, voteResult.String())
 		fmt.Fprintln(rw, "vote ends")
 		delete(votes, channelId)
-	} else if _, ok := votes[channelId]; ok {
-		userName := req.PostFormValue("user_name")
-		if voters, ok := voteResult[text]; ok {
-			if !voteResult.hasVoted(userName) {
-				voters.add(userName)
-			}
-		} else {
-			voters = newStringSet()
-			voters.add(userName)
-			voteResult[text] = voters
+	} else if starter, ok := votes[channelId]; ok {
+		if !(text == "result" && userId == starter) {
+			vote(req.PostFormValue("user_name"), text)
 		}
 		fmt.Fprintln(rw, voteResult)
 	} else {
@@ -106,6 +99,18 @@ func annouce(c context.Context, channelId, text string) error {
 		"text":    {text},
 	})
 	return err
+}
+
+func vote(userName, option string) {
+	if voters, ok := voteResult[option]; ok {
+		if !voteResult.hasVoted(userName) {
+			voters.add(userName)
+		}
+	} else {
+		voters = newStringSet()
+		voters.add(userName)
+		voteResult[option] = voters
+	}
 }
 
 // count active users in channel with channels.info then users.getPresence
@@ -143,5 +148,5 @@ func activeUsersInChannel(c context.Context, channelId string) (users []string, 
 func init() {
 	log.Println("vote init")
 	http.HandleFunc("/cmds/vote",
-		slack.ValidateCommand(http.HandlerFunc(vote), credentials.Commands))
+		slack.ValidateCommand(http.HandlerFunc(handleVote), credentials.Commands))
 }
