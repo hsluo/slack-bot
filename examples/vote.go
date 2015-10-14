@@ -44,7 +44,7 @@ func (vr VoteResult) String() string {
 }
 
 var (
-	votes      = newStringSet()
+	votes      = make(map[string]string)
 	voteResult = VoteResult{}
 	m          sync.Mutex
 )
@@ -59,8 +59,8 @@ func vote(rw http.ResponseWriter, req *http.Request) {
 	l.Infof(c, "%v", req.PostForm)
 	m.Lock()
 	if text == "start" {
-		if startVote(channelId) {
-			err := annouce(c, channelId, fmt.Sprintf("<@%s> just starts a vote!", userId))
+		if startVote(channelId, userId) {
+			err := annouce(c, channelId, fmt.Sprintf("<@%s> just starts a vote! Type `/vote [option]` to vote.", userId))
 			if err != nil {
 				fmt.Fprintln(rw, err)
 			} else {
@@ -72,8 +72,8 @@ func vote(rw http.ResponseWriter, req *http.Request) {
 	} else if text == "done" {
 		annouce(c, channelId, voteResult.String())
 		fmt.Fprintln(rw, "vote ends")
-		delete(votes.set, channelId)
-	} else if votes.contains(channelId) {
+		delete(votes, channelId)
+	} else if _, ok := votes[channelId]; ok {
 		userName := req.PostFormValue("user_name")
 		if voters, ok := voteResult[text]; ok {
 			if !voteResult.hasVoted(userName) {
@@ -91,13 +91,12 @@ func vote(rw http.ResponseWriter, req *http.Request) {
 	m.Unlock()
 }
 
-func startVote(channelId string) bool {
-	if votes.contains(channelId) {
-		return false
-	} else {
-		votes.add(channelId)
-		return true
+func startVote(channelId, userId string) bool {
+	_, ok := votes[channelId]
+	if !ok {
+		votes[channelId] = userId
 	}
+	return !ok
 }
 
 func annouce(c context.Context, channelId, text string) error {
