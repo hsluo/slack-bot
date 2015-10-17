@@ -16,3 +16,5 @@ A simple Slack bot using web API and RTM API. Compatible with [Google App Engine
 - Outgoing webhooks
 - Mentioning bot in RTM
 - Slash command
+  - Get a commit message from [whatthecommit.com](http://whatthecommit.com/)
+  - Vote
