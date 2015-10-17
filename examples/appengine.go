@@ -25,7 +25,6 @@ type task struct {
 }
 
 var (
-	bot                slack.Bot
 	botId, atId, alias string
 	loc                *time.Location
 	outgoing           chan task
@@ -36,12 +35,8 @@ func handleHook(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if bot.Token == "" || slack.Creds.HookToken == "" {
-		warmUp(rw, req)
-	}
-
 	token := req.PostFormValue("token")
-	if token != slack.Creds.HookToken {
+	if token != credentials.HookToken {
 		return
 	}
 
@@ -92,24 +87,9 @@ func worker(outgoing chan task) {
 	}
 }
 
-func warmUp(rw http.ResponseWriter, req *http.Request) {
-	c := appengine.NewContext(req)
-
-	if bot.UserId == "" {
-		client := urlfetch.Client(c)
-		newbot, err := slack.NewBot(client, slack.Creds.BotToken)
-		if err != nil {
-			c.Errorf("%v", err)
-		} else {
-			bot = newbot
-			c.Infof("current bot: %#v", bot)
-		}
-	}
-}
-
 func standUpAlert(rw http.ResponseWriter, req *http.Request) {
 	c := appengine.NewContext(req)
-	url := slack.Creds.SlackbotUrl
+	url := credentials.SlackbotUrl
 	if url == "" {
 		c.Errorf("no slackbot URL provided")
 		return
@@ -128,9 +108,6 @@ func logglyAlert(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if bot.Token == "" {
-		warmUp(rw, req)
-	}
 	bytes, err := json.Marshal([]slack.Attachment{attachment})
 	if err != nil {
 		c.Errorf("%s", err)
@@ -144,9 +121,6 @@ func logglyAlert(rw http.ResponseWriter, req *http.Request) {
 }
 
 func replyCommit(rw http.ResponseWriter, req *http.Request) {
-	if !slack.ValidateCommand(req) {
-		return
-	}
 	fmt.Fprintln(rw, WhatTheCommit(urlfetch.Client(appengine.NewContext(req))))
 }
 
@@ -158,5 +132,6 @@ func init() {
 	http.HandleFunc("/hook", handleHook)
 	http.HandleFunc("/alerts/standup", standUpAlert)
 	http.HandleFunc("/loggly", logglyAlert)
-	http.HandleFunc("/cmds/whatthecommit", replyCommit)
 }
+
+func main() {}

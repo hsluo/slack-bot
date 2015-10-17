@@ -10,6 +10,11 @@ import (
 	"github.com/hsluo/slack-bot"
 )
 
+var (
+	credentials slack.Credentials
+	bot         slack.Bot
+)
+
 func sendCommitMessage(m slack.Message, outgoing chan<- slack.Message) {
 	m.Text = WhatTheCommit(nil)
 	outgoing <- m
@@ -64,8 +69,9 @@ func init() {
 	loc, _ = time.LoadLocation("Asia/Shanghai")
 	rand.Seed(time.Now().Unix())
 	var err error
-	err = slack.LoadCredentials("credentials.json")
+	credentials, err = slack.LoadCredentials("credentials.json")
 	if err != nil {
 		log.Fatal(err)
 	}
+	bot = credentials.Bot
 }
