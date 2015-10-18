@@ -12,14 +12,17 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/net/context"
+
 	"github.com/hsluo/slack-bot"
 
-	"appengine"
-	"appengine/urlfetch"
+	"google.golang.org/appengine"
+	l "google.golang.org/appengine/log"
+	"google.golang.org/appengine/urlfetch"
 )
 
 type task struct {
-	context appengine.Context
+	context context.Context
 	url     string
 	data    url.Values
 }
@@ -45,7 +48,7 @@ func handleHook(rw http.ResponseWriter, req *http.Request) {
 
 func replyHook(req *http.Request) {
 	c := appengine.NewContext(req)
-	c.Infof("%v", req.Form)
+	l.Infof(c, "%v", req.Form)
 
 	channel := req.PostFormValue("channel_id")
 	text := req.PostFormValue("text")
@@ -82,7 +85,7 @@ func worker(outgoing chan task) {
 	for task := range outgoing {
 		_, err := bot.WithClient(urlfetch.Client(task.context)).PostForm(task.url, task.data)
 		if err != nil {
-			task.context.Errorf("%s\n%v", err, task.data)
+			l.Errorf(task.context, "%s\n%v", err, task.data)
 		}
 	}
 }
@@ -91,7 +94,7 @@ func standUpAlert(rw http.ResponseWriter, req *http.Request) {
 	c := appengine.NewContext(req)
 	url := credentials.SlackbotUrl
 	if url == "" {
-		c.Errorf("no slackbot URL provided")
+		l.Errorf(c, "no slackbot URL provided")
 		return
 	}
 	url = fmt.Sprintf("%s&channel=%%23%s", url, "general")
@@ -104,13 +107,13 @@ func logglyAlert(rw http.ResponseWriter, req *http.Request) {
 
 	attachment, err := NewAttachment(req)
 	if err != nil {
-		c.Errorf("%s", err)
+		l.Errorf(c, "%s", err)
 		return
 	}
 
 	bytes, err := json.Marshal([]slack.Attachment{attachment})
 	if err != nil {
-		c.Errorf("%s", err)
+		l.Errorf(c, "%s", err)
 		return
 	}
 	data := url.Values{}
@@ -132,6 +135,8 @@ func init() {
 	http.HandleFunc("/hook", handleHook)
 	http.HandleFunc("/alerts/standup", standUpAlert)
 	http.HandleFunc("/loggly", logglyAlert)
+	http.HandleFunc("/cmds/whatthecommit",
+		slack.ValidateCommand(http.HandlerFunc(replyCommit), credentials.Commands))
 }
 
 func main() {}

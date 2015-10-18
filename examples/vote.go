@@ -1,3 +1,5 @@
+// +build appengine
+
 package main
 
 import (
@@ -9,10 +11,13 @@ import (
 	"sort"
 	"sync"
 
+	"golang.org/x/net/context"
+
 	"github.com/hsluo/slack-bot"
 
-	"appengine"
-	"appengine/urlfetch"
+	"google.golang.org/appengine"
+	l "google.golang.org/appengine/log"
+	"google.golang.org/appengine/urlfetch"
 )
 
 type Vote struct {
@@ -126,7 +131,7 @@ func startVote(channelId string) bool {
 	}
 }
 
-func annouce(c appengine.Context, channelId, text string) error {
+func annouce(c context.Context, channelId, text string) error {
 	client := urlfetch.Client(c)
 	err := bot.WithClient(client).ChatPostMessage(url.Values{
 		"channel": {channelId},
@@ -137,28 +142,28 @@ func annouce(c appengine.Context, channelId, text string) error {
 
 // count active users in channel with channels.info then users.getPresence
 // very slow due to network
-func activeUsersInChannel(c appengine.Context, channelId string) (users []string, err error) {
+func activeUsersInChannel(c context.Context, channelId string) (users []string, err error) {
 	bot := bot.WithClient(urlfetch.Client(c))
 	members, err := bot.ChannelsInfo(channelId)
-	c.Infof("check %v", members)
+	l.Infof(c, "check %v", members)
 	active := make(chan string, len(members))
 	var wg sync.WaitGroup
 	for i := range members {
 		wg.Add(1)
 		go func(user string, active chan string, wg *sync.WaitGroup) {
 			defer wg.Done()
-			c.Infof("begin " + user)
+			l.Infof(c, "begin "+user)
 			if p, err := bot.UsersGetPresence(user); err != nil {
-				c.Errorf("%s", err)
+				l.Errorf(c, "%s", err)
 				return
 			} else if p == "active" {
 				active <- user
 			}
-			c.Infof("done " + user)
+			l.Infof(c, "done "+user)
 		}(members[i], active, &wg)
 	}
 	wg.Wait()
-	c.Infof("done wait")
+	l.Infof(c, "done wait")
 	close(active)
 	users = make([]string, len(members))
 	for user := range active {

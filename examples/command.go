@@ -5,8 +5,6 @@ import (
 	"log"
 	"net/http"
 	"strings"
-
-	"github.com/hsluo/slack-bot"
 )
 
 func WhatTheCommit(client *http.Client) string {
@@ -23,9 +21,4 @@ func WhatTheCommit(client *http.Client) string {
 		log.Println(err)
 	}
 	return strings.TrimSpace(string(body))
-}
-
-func init() {
-	http.HandleFunc("/cmds/whatthecommit",
-		slack.ValidateCommand(http.HandlerFunc(replyCommit), credentials.Commands))
 }
