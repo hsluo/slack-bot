@@ -58,6 +58,7 @@ func vote(rw http.ResponseWriter, req *http.Request) {
 		text      = req.PostFormValue("text")
 		userId    = req.PostFormValue("user_id")
 	)
+	l.Infof(c, "%v", req.PostForm)
 	m.Lock()
 	if text == "start" {
 		if startVote(channelId) {
