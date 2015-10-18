@@ -20,36 +20,6 @@ import (
 	"google.golang.org/appengine/urlfetch"
 )
 
-type Vote struct {
-	UserName string
-	Option   string
-}
-
-type StringSet struct {
-	set map[string]struct{}
-}
-
-func newStringSet() StringSet {
-	return StringSet{set: make(map[string]struct{})}
-}
-
-func (v *StringSet) add(key string) {
-	v.set[key] = struct{}{}
-}
-
-func (v StringSet) contains(key string) bool {
-	_, ok := v.set[key]
-	return ok
-}
-
-func (v StringSet) toSlice() []string {
-	s := make([]string, 0, len(v.set))
-	for k, _ := range v.set {
-		s = append(s, k)
-	}
-	return s
-}
-
 type VoteResult map[string]StringSet
 
 func (vr VoteResult) hasVoted(user string) bool {
