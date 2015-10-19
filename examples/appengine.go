@@ -28,9 +28,9 @@ type task struct {
 }
 
 var (
-	botId, atId, alias string
-	loc                *time.Location
-	outgoing           chan task
+	botId, atId string
+	loc         *time.Location
+	outgoing    chan task
 )
 
 func handleHook(rw http.ResponseWriter, req *http.Request) {

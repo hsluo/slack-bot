@@ -3,7 +3,6 @@
 package main
 
 import (
-	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/http"
@@ -17,21 +16,10 @@ import (
 )
 
 var (
-	token              string
-	botId, atId, alias string
-	loc                *time.Location
+	token       string
+	botId, atId string
+	loc         *time.Location
 )
-
-func readCredentials(file string) (token, alias string) {
-	b, err := ioutil.ReadFile(file)
-	if err != nil {
-		log.Fatal(err)
-	}
-	lines := strings.Split(string(b), "\n")
-	token, alias = lines[0], lines[1]
-	log.Println(token, alias)
-	return
-}
 
 func startServer() {
 	port := os.Getenv("PORT")
@@ -84,18 +72,13 @@ func handleMessage(incoming <-chan slack.Message, outgoing chan<- slack.Message)
 
 func init() {
 	log.Println("standalone init")
-	token, alias = readCredentials("CREDENTIALS")
 }
 
 func main() {
-	wsurl, id := slack.RtmStart(token)
+	credentials, err := slack.LoadCredentials("credentials.json")
+	wsurl, id := slack.RtmStart(credentials.Bot.Token)
 	botId = id
 	atId = "<@" + botId + ">"
-	if alias == "" {
-		alias = atId
-	} else {
-		alias = "@" + alias
-	}
 	log.Println(wsurl, botId)
 
 	ws, err := websocket.Dial(wsurl, "", "https://api.slack.com/")

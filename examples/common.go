@@ -84,8 +84,7 @@ func isImage(m slack.Message) bool {
 
 // at in the middle of the message is not supported
 func isAt(text string) bool {
-	return strings.HasPrefix(text, atId) || strings.HasSuffix(text, atId) ||
-		strings.HasPrefix(text, alias) || strings.HasSuffix(text, alias)
+	return strings.HasPrefix(text, atId) || strings.HasSuffix(text, atId)
 }
 
 func init() {
@@ -96,7 +95,7 @@ func init() {
 	var err error
 	credentials, err = slack.LoadCredentials("credentials.json")
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 	bot = credentials.Bot
 }
