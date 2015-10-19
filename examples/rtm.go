@@ -3,6 +3,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"math/rand"
 	"net/http"
@@ -89,8 +90,26 @@ func main() {
 	incoming := make(chan slack.Message)
 	outgoing := make(chan slack.Message)
 
-	go slack.RtmReceive(ws, incoming)
-	go slack.RtmSend(ws, outgoing)
+	go func() {
+		for {
+			m, err := slack.RtmReceive(ws)
+			if err != nil {
+				log.Println(err)
+			} else {
+				log.Printf("read %v", m)
+				incoming <- m
+			}
+		}
+	}()
+	go func() {
+		for m := range outgoing {
+			m.Ts = fmt.Sprintf("%f", float64(time.Now().UnixNano())/1000000000.0)
+			log.Printf("send %v", m)
+			if err := slack.RtmSend(ws, m); err != nil {
+				log.Println(err)
+			}
+		}
+	}()
 	go handleMessage(incoming, outgoing)
 
 	startServer()

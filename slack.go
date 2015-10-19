@@ -9,7 +9,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"time"
 
 	"golang.org/x/net/websocket"
 )
@@ -195,26 +194,13 @@ func RtmStart(token string) (wsurl string, id string) {
 	return
 }
 
-func RtmReceive(ws *websocket.Conn, incoming chan<- Message) {
-	for {
-		var m Message
-		if err := websocket.JSON.Receive(ws, &m); err != nil {
-			log.Println(err)
-		} else {
-			log.Printf("read %v", m)
-			incoming <- m
-		}
-	}
+func RtmReceive(ws *websocket.Conn) (m Message, err error) {
+	err = websocket.JSON.Receive(ws, &m)
+	return
 }
 
-func RtmSend(ws *websocket.Conn, outgoing <-chan Message) {
-	for m := range outgoing {
-		m.Ts = fmt.Sprintf("%f", float64(time.Now().UnixNano())/1000000000.0)
-		log.Printf("send %v", m)
-		if err := websocket.JSON.Send(ws, m); err != nil {
-			log.Println(err)
-		}
-	}
+func RtmSend(ws *websocket.Conn, m Message) error {
+	return websocket.JSON.Send(ws, m)
 }
 
 func LoadCredentials(filename string) (credentials Credentials, err error) {
