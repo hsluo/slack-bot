@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"regexp"
@@ -78,4 +79,64 @@ func NewAttachment(req *http.Request) (attachment slack.Attachment, err error) {
 		MrkdwnIn:  []string{"fields"},
 	}
 	return attachment, nil
+}
+
+type SearchResult struct {
+	Events []Event
+}
+
+type Event struct {
+	Tags      []string
+	Timestamp uint64
+	Logmsg    string
+	Logtypes  []string
+	Id        string
+	Event     map[string]map[string]interface{}
+}
+
+type SubEvent struct {
+	Severity  string
+	Facility  string
+	Timestamp string
+	AppName   string
+	Pid       int
+	Priority  string
+	Host      string
+}
+
+type LogglyClient struct {
+	username, password string
+	client             *http.Client
+}
+
+type LogglyResponse struct {
+	*http.Response
+}
+
+func (r LogglyResponse) ToJson() map[string]interface{} {
+	defer r.Body.Close()
+	m := make(map[string]interface{})
+	decodeJson(r.Body, &m)
+	return m
+}
+
+func (c *LogglyClient) Request(endpoint string) *LogglyResponse {
+	req, _ := http.NewRequest("GET", endpoint, nil)
+	req.SetBasicAuth(c.username, c.password)
+	resp, err := c.client.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	return &LogglyResponse{resp}
+}
+
+func decodeJson(reader io.Reader, v interface{}) error {
+	dec := json.NewDecoder(reader)
+	for {
+		if err := dec.Decode(v); err == io.EOF {
+			return nil
+		} else {
+			return err
+		}
+	}
 }

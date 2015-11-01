@@ -5,10 +5,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"math/rand"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -127,6 +129,26 @@ func replyCommit(rw http.ResponseWriter, req *http.Request) {
 	fmt.Fprintln(rw, WhatTheCommit(urlfetch.Client(appengine.NewContext(req))))
 }
 
+var domain = os.Getenv("LOGGLY_DOMAIN")
+var logglyClient = &LogglyClient{
+	username: os.Getenv("LOGGLY_USERNAME"),
+	password: os.Getenv("LOGGLY_PASSWORD"),
+}
+
+func logglySearch(rw http.ResponseWriter, req *http.Request) {
+	ctx := appengine.NewContext(req)
+	logglyClient.client = urlfetch.Client(ctx)
+
+	api := fmt.Sprintf("http://%s.loggly.com/apiv2/search?%s", domain,
+		url.Values{"q": {`syslog.severity:"Error" OR syslog.severity:"Warning" OR json.status:>=500`}, "from": {"-1h"}}.Encode())
+	rsidResp := logglyClient.Request(api).ToJson()
+
+	rsid := rsidResp["rsid"].(map[string]interface{})["id"].(string)
+	searchResp := logglyClient.Request(fmt.Sprintf("http://%s.loggly.com/apiv2/events?rsid=%s", domain, rsid))
+	defer searchResp.Body.Close()
+	io.Copy(rw, searchResp.Body)
+}
+
 func init() {
 	log.Println("appengine init")
 	outgoing = make(chan task)
@@ -134,7 +156,8 @@ func init() {
 
 	http.HandleFunc("/hook", handleHook)
 	http.HandleFunc("/alerts/standup", standUpAlert)
-	http.HandleFunc("/loggly", logglyAlert)
+	//http.HandleFunc("/loggly", logglyAlert)
+	http.HandleFunc("/loggly/search", logglySearch)
 	http.HandleFunc("/cmds/whatthecommit",
 		slack.ValidateCommand(http.HandlerFunc(replyCommit), credentials.Commands))
 }

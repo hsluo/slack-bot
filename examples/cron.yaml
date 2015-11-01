@@ -3,3 +3,7 @@ cron:
   url: /alerts/standup
   schedule: every mon,tue,wed,thu,fri 10:00
   timezone: Asia/Shanghai
+- description: loggly alert
+  url: /loggly/search
+  schedule: every 10 minutes from 6:00 to 23:00
+  timezone: Asia/Shanghai
