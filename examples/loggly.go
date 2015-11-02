@@ -31,6 +31,20 @@ var (
 	exRe = regexp.MustCompile(`\w+::\w+`)
 )
 
+func fmtHit(hit string) string {
+	stackTrace := strings.Split(strings.TrimSpace(hit), "#012")
+	for i := range stackTrace {
+		if i == 0 {
+			stackTrace[i] = exRe.ReplaceAllStringFunc(stackTrace[i], func(match string) string {
+				return "`" + match + "`"
+			})
+		} else {
+			stackTrace[i] = "> " + stackTrace[i]
+		}
+	}
+	return strings.Join(stackTrace, "\n")
+}
+
 // create slack attachement from Loggly's HTTP alert
 func NewAttachment(req *http.Request) (attachment slack.Attachment, err error) {
 	body, err := ioutil.ReadAll(req.Body)
@@ -45,20 +59,7 @@ func NewAttachment(req *http.Request) (attachment slack.Attachment, err error) {
 	if strings.Contains(alert.RecentHits[0], "#012") {
 		fallback = strings.SplitN(alert.RecentHits[0], "#012", 2)[0]
 		for i, hit := range alert.RecentHits {
-			stackTrace := strings.Split(strings.TrimSpace(hit), "#012")
-			if fallback == "" {
-				fallback = stackTrace[0]
-			}
-			for i := range stackTrace {
-				if i == 0 {
-					stackTrace[i] = exRe.ReplaceAllStringFunc(stackTrace[i], func(match string) string {
-						return "`" + match + "`"
-					})
-				} else {
-					stackTrace[i] = "> " + stackTrace[i]
-				}
-			}
-			alert.RecentHits[i] = strings.Join(stackTrace, "\n")
+			alert.RecentHits[i] = fmtHit(hit)
 		}
 	} else {
 		fallback = alert.RecentHits[0]
@@ -82,7 +83,8 @@ func NewAttachment(req *http.Request) (attachment slack.Attachment, err error) {
 }
 
 type SearchResult struct {
-	Events []Event
+	TotalEvents int `json:"total_events"`
+	Events      []Event
 }
 
 type Event struct {
@@ -113,11 +115,9 @@ type LogglyResponse struct {
 	*http.Response
 }
 
-func (r LogglyResponse) ToJson() map[string]interface{} {
+func (r LogglyResponse) UnmarshallJson(v interface{}) {
 	defer r.Body.Close()
-	m := make(map[string]interface{})
-	decodeJson(r.Body, &m)
-	return m
+	decodeJson(r.Body, v)
 }
 
 func (c *LogglyClient) Request(endpoint string) *LogglyResponse {

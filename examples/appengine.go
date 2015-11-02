@@ -5,7 +5,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"math/rand"
 	"net/http"
@@ -139,14 +138,32 @@ func logglySearch(rw http.ResponseWriter, req *http.Request) {
 	ctx := appengine.NewContext(req)
 	logglyClient.client = urlfetch.Client(ctx)
 
-	api := fmt.Sprintf("http://%s.loggly.com/apiv2/search?%s", domain,
-		url.Values{"q": {`syslog.severity:"Error" OR syslog.severity:"Warning" OR json.status:>=500`}, "from": {"-1h"}}.Encode())
-	rsidResp := logglyClient.Request(api).ToJson()
+	api := fmt.Sprintf("http://%s.loggly.com/apiv2/search?%s",
+		domain,
+		url.Values{
+			"q":    {`syslog.severity:"Error" OR syslog.severity:"Warning" OR json.status:>=500`},
+			"from": {"-10m"},
+		}.Encode())
+	rsidResp := make(map[string]interface{})
+	logglyClient.Request(api).UnmarshallJson(&rsidResp)
 
 	rsid := rsidResp["rsid"].(map[string]interface{})["id"].(string)
-	searchResp := logglyClient.Request(fmt.Sprintf("http://%s.loggly.com/apiv2/events?rsid=%s", domain, rsid))
-	defer searchResp.Body.Close()
-	io.Copy(rw, searchResp.Body)
+	api = fmt.Sprintf("http://%s.loggly.com/apiv2/events?rsid=%s", domain, rsid)
+	searchResult := SearchResult{}
+	logglyClient.Request(api).UnmarshallJson(&searchResult)
+	l.Infof(ctx, "rsid=%v events=%v", rsid, searchResult.TotalEvents)
+
+	for _, e := range searchResult.Events {
+		text := e.Logmsg
+		if strings.Contains(e.Logmsg, "#012") {
+			text = fmtHit(e.Logmsg)
+		}
+		data := url.Values{}
+		data.Add("channel", "#loggly")
+		data.Add("text", text)
+		data.Add("as_user", "false")
+		outgoing <- task{context: ctx, url: slack.ChatPostMessageApi, data: data}
+	}
 }
 
 func init() {

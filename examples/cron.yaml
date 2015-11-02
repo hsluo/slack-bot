@@ -5,5 +5,5 @@ cron:
   timezone: Asia/Shanghai
 - description: loggly alert
   url: /loggly/search
-  schedule: every 10 minutes from 6:00 to 23:00
+  schedule: every 10 minutes from 8:00 to 23:00
   timezone: Asia/Shanghai

@@ -4,10 +4,11 @@ runtime: go
 api_version: go1
 
 handlers:
-- url: /hook
-  script: _go_app
-- url: /loggly
+- url: /.*
   script: _go_app
 - url: /alerts/standup
+  script: _go_app
+  login: admin
+- url: /loggly/search
   script: _go_app
   login: admin
