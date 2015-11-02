@@ -128,14 +128,20 @@ func replyCommit(rw http.ResponseWriter, req *http.Request) {
 	fmt.Fprintln(rw, WhatTheCommit(urlfetch.Client(appengine.NewContext(req))))
 }
 
-var domain = os.Getenv("LOGGLY_DOMAIN")
-var logglyClient = &LogglyClient{
-	username: os.Getenv("LOGGLY_USERNAME"),
-	password: os.Getenv("LOGGLY_PASSWORD"),
-}
+var (
+	domain       string
+	logglyClient *LogglyClient
+)
 
 func logglySearch(rw http.ResponseWriter, req *http.Request) {
 	ctx := appengine.NewContext(req)
+	if logglyClient == nil {
+		domain = os.Getenv("LOGGLY_DOMAIN")
+		logglyClient = &LogglyClient{
+			username: os.Getenv("LOGGLY_USERNAME"),
+			password: os.Getenv("LOGGLY_PASSWORD"),
+		}
+	}
 	logglyClient.client = urlfetch.Client(ctx)
 
 	api := fmt.Sprintf("http://%s.loggly.com/apiv2/search?%s",
