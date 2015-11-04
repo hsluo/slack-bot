@@ -147,8 +147,9 @@ func logglySearch(rw http.ResponseWriter, req *http.Request) {
 	api := fmt.Sprintf("http://%s.loggly.com/apiv2/search?%s",
 		domain,
 		url.Values{
-			"q":    {`syslog.severity:"Error" OR syslog.severity:"Warning" OR json.status:>=500`},
-			"from": {"-10m"},
+			"q":     {`syslog.severity:"Error" OR syslog.severity:"Warning" OR json.status:>=500`},
+			"from":  {"-10m"},
+			"order": {"asc"},
 		}.Encode())
 	rsidResp := make(map[string]interface{})
 	logglyClient.Request(api).UnmarshallJson(&rsidResp)
