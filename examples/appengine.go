@@ -165,17 +165,23 @@ func logglySearch(rw http.ResponseWriter, req *http.Request) {
 
 	events := make([]string, 0)
 	for _, e := range searchResult.Events {
-		text := e.Logmsg
-		if strings.Contains(e.Logmsg, "#012") {
-			text = fmtHit(e.Logmsg)
+		var text string
+		if v, ok := e.Event["json"]; ok {
+			b, _ := json.MarshalIndent(v, "", "  ")
+			text = fmt.Sprintf("```\n%s\n```", string(b))
+		} else {
+			text = e.Logmsg
+			if strings.Contains(e.Logmsg, "#012") {
+				text = fmtHit(e.Logmsg)
+			}
+			t := time.Unix(e.Timestamp/1000, 0).In(loc)
+			text = fmt.Sprintf("*%v*\n%s", t, text)
 		}
-		t := time.Unix(e.Timestamp/1000, 0).In(loc)
-		text = fmt.Sprintf("*%v*\n%s", t, text)
 		events = append(events, text)
 	}
 	data := url.Values{}
 	data.Add("channel", "#loggly")
-	data.Add("text", strings.Join(events, "\n---\n"))
+	data.Add("text", strings.Join(events, "\n"+strings.Repeat("=", 100)+"\n"))
 	data.Add("as_user", "false")
 	outgoing <- task{context: ctx, url: slack.ChatPostMessageApi, data: data}
 }

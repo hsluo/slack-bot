@@ -98,7 +98,7 @@ type Event struct {
 	Logmsg    string
 	Logtypes  []string
 	Id        string
-	Event     map[string]map[string]interface{}
+	Event     map[string]interface{}
 }
 
 type SubEvent struct {
