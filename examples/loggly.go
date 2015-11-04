@@ -33,16 +33,21 @@ var (
 
 func fmtHit(hit string) string {
 	stackTrace := strings.Split(strings.TrimSpace(hit), "#012")
+	lines := make([]string, 0)
 	for i := range stackTrace {
 		if i == 0 {
-			stackTrace[i] = exRe.ReplaceAllStringFunc(stackTrace[i], func(match string) string {
+			line := exRe.ReplaceAllStringFunc(stackTrace[i], func(match string) string {
 				return "`" + match + "`"
 			})
+			lines = append(lines, line)
+		} else if i < 6 {
+			lines = append(lines, "> "+stackTrace[i])
 		} else {
-			stackTrace[i] = "> " + stackTrace[i]
+			lines = append(lines, fmt.Sprintf("...and %d lines more", len(stackTrace)-5))
+			break
 		}
 	}
-	return strings.Join(stackTrace, "\n")
+	return strings.Join(lines, "\n")
 }
 
 // create slack attachement from Loggly's HTTP alert
@@ -89,7 +94,7 @@ type SearchResult struct {
 
 type Event struct {
 	Tags      []string
-	Timestamp uint64
+	Timestamp int64
 	Logmsg    string
 	Logtypes  []string
 	Id        string
