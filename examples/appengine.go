@@ -24,7 +24,7 @@ import (
 
 type task struct {
 	context context.Context
-	url     string
+	method  string
 	data    url.Values
 }
 
@@ -60,31 +60,31 @@ func replyHook(req *http.Request) {
 
 	if strings.Contains(text, "commit") {
 		data.Add("text", WhatTheCommit(client))
-		outgoing <- task{context: c, url: slack.ChatPostMessageApi, data: data}
+		outgoing <- task{context: c, method: "chat.postMessage", data: data}
 	} else if strings.Contains(text, bot.User) ||
 		strings.Contains(text, bot.UserId) {
 		d1 := url.Values{"channel": {channel}, "text": {"稍等"}}
-		outgoing <- task{context: c, url: slack.ChatPostMessageApi, data: d1}
+		outgoing <- task{context: c, method: "chat.postMessage", data: d1}
 
 		text := codeWithAt(user_id)
 		d2 := url.Values{"channel": {channel}, "text": {text}}
-		outgoing <- task{context: c, url: slack.ChatPostMessageApi, data: d2}
+		outgoing <- task{context: c, method: "chat.postMessage", data: d2}
 	} else if strings.Contains(text, "谢谢") {
 		data.Add("text", "不客气 :blush:")
-		outgoing <- task{context: c, url: slack.ChatPostMessageApi, data: data}
+		outgoing <- task{context: c, method: "chat.postMessage", data: data}
 	} else {
 		if rand.Intn(2) > 0 {
 			data.Add("text", "呵呵")
 		} else {
 			data.Add("text", "嘻嘻")
 		}
-		outgoing <- task{context: c, url: slack.ChatPostMessageApi, data: data}
+		outgoing <- task{context: c, method: "chat.postMessage", data: data}
 	}
 }
 
 func worker(outgoing chan task) {
 	for task := range outgoing {
-		_, err := bot.WithClient(urlfetch.Client(task.context)).PostForm(task.url, task.data)
+		_, err := bot.WithClient(urlfetch.Client(task.context)).PostForm(task.method, task.data)
 		if err != nil {
 			l.Errorf(task.context, "%s\n%v", err, task.data)
 		}
@@ -121,7 +121,7 @@ func logglyAlert(rw http.ResponseWriter, req *http.Request) {
 	data.Add("channel", "#loggly")
 	data.Add("attachments", string(bytes))
 	data.Add("as_user", "false")
-	outgoing <- task{context: c, url: slack.ChatPostMessageApi, data: data}
+	outgoing <- task{context: c, method: "chat.postMessage", data: data}
 }
 
 func replyCommit(rw http.ResponseWriter, req *http.Request) {
@@ -184,7 +184,7 @@ func logglySearch(rw http.ResponseWriter, req *http.Request) {
 	data.Add("channel", "#loggly")
 	data.Add("text", strings.Join(events, "\n"+strings.Repeat("=", 100)+"\n"))
 	data.Add("as_user", "false")
-	outgoing <- task{context: ctx, url: slack.ChatPostMessageApi, data: data}
+	outgoing <- task{context: ctx, method: "chat.postMessage", data: data}
 }
 
 func init() {
