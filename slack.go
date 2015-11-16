@@ -14,9 +14,7 @@ import (
 )
 
 const (
-	API_BASE           = "https://slack.com/api/"
-	ChatPostMessageApi = API_BASE + "chat.postMessage"
-	ChannelsInfoApi    = API_BASE + "channels.info"
+	API_BASE = "https://slack.com/api/"
 )
 
 type Credentials struct {
@@ -72,7 +70,7 @@ type Bot struct {
 }
 
 func NewBot(c *http.Client, token string) (b Bot, err error) {
-	resp, err := c.PostForm("https://slack.com/api/auth.test", url.Values{"token": {token}})
+	resp, err := c.PostForm("auth.test", url.Values{"token": {token}})
 	if err != nil {
 		return
 	}
@@ -97,7 +95,7 @@ func (b Bot) WithClient(c *http.Client) Bot {
 	return b
 }
 
-func (b Bot) PostForm(url string, data url.Values) (respJson map[string]interface{}, err error) {
+func (b Bot) PostForm(endpoint string, data url.Values) (respJson map[string]interface{}, err error) {
 	data.Add("token", b.Token)
 	if _, ok := data["as_user"]; !ok {
 		data.Add("as_user", "true")
@@ -106,7 +104,7 @@ func (b Bot) PostForm(url string, data url.Values) (respJson map[string]interfac
 	if b.Client == nil {
 		b.Client = http.DefaultClient
 	}
-	resp, err := b.Client.PostForm(url, data)
+	resp, err := b.Client.PostForm(API_BASE+endpoint, data)
 	if err != nil {
 		return
 	}
@@ -121,12 +119,12 @@ func (b Bot) PostForm(url string, data url.Values) (respJson map[string]interfac
 }
 
 func (b Bot) ChatPostMessage(data url.Values) (err error) {
-	_, err = b.PostForm("https://slack.com/api/chat.postMessage", data)
+	_, err = b.PostForm("chat.postMessage", data)
 	return
 }
 
 func (b Bot) ChannelsInfo(channelId string) ([]string, error) {
-	resp, err := b.PostForm(ChannelsInfoApi, url.Values{"channel": {channelId}})
+	resp, err := b.PostForm("channels.info", url.Values{"channel": {channelId}})
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +137,7 @@ func (b Bot) ChannelsInfo(channelId string) ([]string, error) {
 }
 
 func (b Bot) UsersGetPresence(user string) (presence string, err error) {
-	resp, err := b.PostForm("https://slack.com/api/users.getPresence", url.Values{"user": {user}})
+	resp, err := b.PostForm("users.getPresence", url.Values{"user": {user}})
 	if err != nil {
 		return
 	} else {
@@ -150,7 +148,7 @@ func (b Bot) UsersGetPresence(user string) (presence string, err error) {
 
 // for presence now
 func (b Bot) UsersList(presence string) (present []string, err error) {
-	resp, err := b.PostForm("https://slack.com/api/users.list", url.Values{"presence": {presence}})
+	resp, err := b.PostForm("users.list", url.Values{"presence": {presence}})
 	if err != nil {
 		return
 	}
@@ -181,7 +179,7 @@ func asJson(resp *http.Response) (map[string]interface{}, error) {
 
 // Calls rtm.start API, return websocket url and bot id
 func RtmStart(token string) (wsurl string, id string) {
-	resp, err := http.PostForm("https://slack.com/api/rtm.start", url.Values{"token": {token}})
+	resp, err := http.PostForm("rtm.start", url.Values{"token": {token}})
 	if err != nil {
 		log.Fatal(err)
 	}
