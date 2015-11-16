@@ -69,27 +69,6 @@ type Bot struct {
 	Client *http.Client
 }
 
-func NewBot(c *http.Client, token string) (b Bot, err error) {
-	resp, err := c.PostForm("auth.test", url.Values{"token": {token}})
-	if err != nil {
-		return
-	}
-	respAuthTest, err := asJson(resp)
-	if err != nil {
-		return
-	} else if !respAuthTest["ok"].(bool) {
-		err = errors.New(respAuthTest["error"].(string))
-		return
-	} else {
-		b = Bot{
-			Token:  token,
-			UserId: respAuthTest["user_id"].(string),
-			User:   respAuthTest["user"].(string),
-		}
-	}
-	return
-}
-
 func (b Bot) WithClient(c *http.Client) Bot {
 	b.Client = c
 	return b
@@ -116,6 +95,19 @@ func (b Bot) PostForm(endpoint string, data url.Values) (respJson map[string]int
 		err = errors.New(respJson["error"].(string))
 	}
 	return
+}
+
+func asJson(resp *http.Response) (map[string]interface{}, error) {
+	defer resp.Body.Close()
+	m := make(map[string]interface{})
+	dec := json.NewDecoder(resp.Body)
+	for {
+		if err := dec.Decode(&m); err == io.EOF {
+			return m, nil
+		} else if err != nil {
+			return nil, err
+		}
+	}
 }
 
 func (b Bot) ChatPostMessage(data url.Values) (err error) {
@@ -162,19 +154,6 @@ func (b Bot) UsersList(presence string) (present []string, err error) {
 		}
 	}
 	return
-}
-
-func asJson(resp *http.Response) (map[string]interface{}, error) {
-	defer resp.Body.Close()
-	m := make(map[string]interface{})
-	dec := json.NewDecoder(resp.Body)
-	for {
-		if err := dec.Decode(&m); err == io.EOF {
-			return m, nil
-		} else if err != nil {
-			return nil, err
-		}
-	}
 }
 
 // Calls rtm.start API, return websocket url and bot id
