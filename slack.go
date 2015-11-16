@@ -58,10 +58,6 @@ type Field struct {
 	Short bool   `json:"short"`
 }
 
-type Channel struct {
-	Members []string `json:"members"`
-}
-
 type Bot struct {
 	Token  string `json:"token"`
 	UserId string `json:"user_id"`
@@ -113,19 +109,6 @@ func asJson(resp *http.Response) (map[string]interface{}, error) {
 func (b Bot) ChatPostMessage(data url.Values) (err error) {
 	_, err = b.PostForm("chat.postMessage", data)
 	return
-}
-
-func (b Bot) ChannelsInfo(channelId string) ([]string, error) {
-	resp, err := b.PostForm("channels.info", url.Values{"channel": {channelId}})
-	if err != nil {
-		return nil, err
-	}
-	members := resp["channel"].(map[string]interface{})["members"].([]interface{})
-	ret := make([]string, len(members))
-	for i := range members {
-		ret[i] = members[i].(string)
-	}
-	return ret, nil
 }
 
 func (b Bot) UsersGetPresence(user string) (presence string, err error) {
