@@ -41,7 +41,22 @@ func (b Bot) ChannelsList() ([]Channel, error) {
 			Name:     el["name"].(string),
 			IsMember: el["is_member"].(bool),
 		}
-		channels = append(channels, channel)
+		channels[i] = channel
 	}
 	return channels, nil
+}
+
+func (b Bot) ChannelsHistory(params url.Values) ([]Message, error) {
+	resp, err := b.PostForm("channels.history", params)
+	if err != nil {
+		return nil, err
+	}
+	array := resp["messages"].([]interface{})
+	messages := make([]Message, len(array))
+	for i := range array {
+		el := array[i].(map[string]interface{})
+		message := Message{Text: el["text"].(string)}
+		messages[i] = message
+	}
+	return messages, nil
 }

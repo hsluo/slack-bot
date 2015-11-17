@@ -198,6 +198,8 @@ func init() {
 	http.HandleFunc("/loggly/search", logglySearch)
 	http.HandleFunc("/cmds/whatthecommit",
 		slack.ValidateCommand(http.HandlerFunc(replyCommit), credentials.Commands))
+
+	http.HandleFunc("/test", handleRegister)
 }
 
 func main() {}
