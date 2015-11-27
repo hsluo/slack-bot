@@ -77,8 +77,16 @@ func init() {
 
 func main() {
 	credentials, err := slack.LoadCredentials("credentials.json")
-	wsurl, id := slack.RtmStart(credentials.Bot.Token)
-	botId = id
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	wsurl, err := slack.RtmStart(credentials.Bot.Token)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	botId = credentials.Bot.UserId
 	atId = "<@" + botId + ">"
 	log.Println(wsurl, botId)
 

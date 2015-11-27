@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 
@@ -140,17 +139,16 @@ func (b Bot) UsersList(presence string) (present []string, err error) {
 }
 
 // Calls rtm.start API, return websocket url and bot id
-func RtmStart(token string) (wsurl string, id string) {
-	resp, err := http.PostForm("rtm.start", url.Values{"token": {token}})
+func RtmStart(token string) (wsurl string, err error) {
+	resp, err := http.PostForm(API_BASE+"rtm.start", url.Values{"token": {token}})
 	if err != nil {
-		log.Fatal(err)
+		return
 	}
 	respRtmStart, err := asJson(resp)
 	if err != nil {
-		log.Fatal(err)
+		return
 	}
 	wsurl = respRtmStart["url"].(string)
-	id = respRtmStart["self"].(map[string]interface{})["id"].(string)
 	return
 }
 
