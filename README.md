@@ -6,4 +6,6 @@ A rough implementation of Slack API
 - [rtm.start](https://api.slack.com/methods/rtm.start)
 
 # Usage
-Check out the `examples` directory
+Check out the `examples` directory, or the repos
+- Loggly alert and search (See https://github.com/hsluo/slack-loggly-alert)
+- RTM (See https://github.com/hsluo/slack-message-forward)
