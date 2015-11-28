@@ -15,7 +15,9 @@ A simple Slack bot using web API and RTM API. Compatible with [Google App Engine
     ![alert](http://i.imgur.com/G45W1M6.png)
 - Loggly search API
 - Outgoing webhooks
-- Mentioning bot in RTM
+- RTM
+
+  See https://github.com/hsluo/slack-message-forward
 - Slash command
   - Get a commit message from [whatthecommit.com](http://whatthecommit.com/)
   - Vote
