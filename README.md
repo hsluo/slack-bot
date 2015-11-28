@@ -9,13 +9,9 @@ A simple Slack bot using web API and RTM API. Compatible with [Google App Engine
 
 ### Use cases implemented
 - Daily stand up meeting alert @ 10:00AM
-- Loggly alert and search
-
-  See https://github.com/hsluo/slack-loggly-alert
+- Loggly alert and search (See https://github.com/hsluo/slack-loggly-alert)
 - Outgoing webhooks
-- RTM
-
-  See https://github.com/hsluo/slack-message-forward
+- RTM (See https://github.com/hsluo/slack-message-forward)
 - Slash command
   - Get a commit message from [whatthecommit.com](http://whatthecommit.com/)
   - Vote
