@@ -189,6 +189,7 @@ func logglySearch(rw http.ResponseWriter, req *http.Request) {
 
 func init() {
 	log.Println("appengine init")
+	loc, _ = time.LoadLocation("Asia/Shanghai")
 	outgoing = make(chan task)
 	go worker(outgoing)
 
