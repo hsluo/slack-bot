@@ -9,11 +9,9 @@ A simple Slack bot using web API and RTM API. Compatible with [Google App Engine
 
 ### Use cases implemented
 - Daily stand up meeting alert @ 10:00AM
-- Loggly HTTP alert to Slack (Currently, They support [only static alert messages](https://www.loggly.com/docs/slack-alerts/) to Slack Chat). 
-  - Example of the alert:
+- Loggly alert and search
 
-    ![alert](http://i.imgur.com/G45W1M6.png)
-- Loggly search API
+  See https://github.com/hsluo/slack-loggly-alert
 - Outgoing webhooks
 - RTM
 

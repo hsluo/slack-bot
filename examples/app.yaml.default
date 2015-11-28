@@ -9,6 +9,3 @@ handlers:
 - url: /alerts/standup
   script: _go_app
   login: admin
-- url: /loggly/search
-  script: _go_app
-  login: admin
