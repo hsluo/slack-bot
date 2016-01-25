@@ -127,12 +127,13 @@ func (b Bot) UsersList(presence string) (present []string, err error) {
 		return
 	}
 	members := resp["members"].([]interface{})
-	present = make([]string, len(members))
+	present = make([]string, 0)
 	for i := range members {
 		m := members[i].(map[string]interface{})
-		p := m["presence"].(string)
-		if p == "active" {
-			present = append(present, m["id"].(string))
+		if p, ok := m["presence"]; ok {
+			if p == "active" {
+				present = append(present, m["id"].(string))
+			}
 		}
 	}
 	return
