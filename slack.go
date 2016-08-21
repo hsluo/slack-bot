@@ -3,7 +3,6 @@ package slack
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -173,11 +172,12 @@ func LoadCredentials(filename string) (credentials Credentials, err error) {
 
 func ValidateCommand(handler http.Handler, commands map[string]string) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if commands[r.PostFormValue("command")] == r.PostFormValue("token") {
+		command := r.PostFormValue("command")
+		token := r.PostFormValue("token")
+		if t, ok := commands[command]; ok && t == token {
 			handler.ServeHTTP(w, r)
 		} else {
-			w.WriteHeader(404)
-			fmt.Fprintln(w, "command not found")
+			w.WriteHeader(400)
 		}
 	})
 }
