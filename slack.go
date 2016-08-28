@@ -68,7 +68,7 @@ func NewBot(token string) *Bot {
 	return &Bot{Token: token}
 }
 
-func (b Bot) WithClient(c *http.Client) Bot {
+func (b *Bot) WithClient(c *http.Client) *Bot {
 	b.Client = c
 	return b
 }
@@ -94,6 +94,14 @@ func (b Bot) PostForm(endpoint string, data url.Values) (respJson map[string]int
 		err = errors.New(respJson["error"].(string))
 	}
 	return
+}
+
+func (b *Bot) Get(endpoint string, params url.Values) (*http.Response, error) {
+	params.Set("token", b.Token)
+	if b.Client == nil {
+		b.Client = http.DefaultClient
+	}
+	return b.Client.Get(API_BASE + endpoint + "?" + params.Encode())
 }
 
 func asJson(resp *http.Response) (map[string]interface{}, error) {
