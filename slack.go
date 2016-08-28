@@ -23,13 +23,14 @@ type Credentials struct {
 }
 
 type Message struct {
-	Type    string     `json:"type"`
-	SubType string     `json:"subtype"`
-	Channel string     `json:"channel"`
-	User    string     `json:"user"`
-	Text    string     `json:"text"`
-	Ts      string     `json:"ts"`
-	File    FileObject `json:"file"`
+	Type        string       `json:"type"`
+	SubType     string       `json:"subtype"`
+	Channel     string       `json:"channel"`
+	User        string       `json:"user"`
+	Text        string       `json:"text"`
+	Ts          string       `json:"ts"`
+	File        FileObject   `json:"file"`
+	Attachments []Attachment `json:"attachments"`
 }
 
 type FileObject struct {
