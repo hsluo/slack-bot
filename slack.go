@@ -63,6 +63,10 @@ type Bot struct {
 	Client *http.Client
 }
 
+func NewBot(token string) *Bot {
+	return &Bot{Token: token}
+}
+
 func (b Bot) WithClient(c *http.Client) Bot {
 	b.Client = c
 	return b
